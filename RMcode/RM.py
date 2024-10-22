@@ -1,7 +1,25 @@
 import operator
-
 import numpy as np
+import math
+import itertools
+def sum_binomial(m, r):
+    total = 0
+    for i in range(r + 1):
+        binom = math.comb(m, i)
+        total += binom
+    return total
 
+
+def fill_bit_array(n):
+    num_rows = 2 ** n
+    array = [[0] * num_rows for _ in range(n)]
+    for i in range(num_rows):
+        bit_representation = format(i, f'0{n}b')
+        for j in range(n):
+            array[j][i] = int(bit_representation[j])
+    return array
+    ##for row in array:
+        ##print(" ".join(map(str, row)))
 
 def generate_matrix():
     matrix = np.zeros((11, 16), dtype=int)
@@ -32,8 +50,34 @@ def generate_matrix():
     matrix[10, 11] = 1
     matrix[10, 15] = 1
     return matrix
+def Creation_G1(m):
+    return (fill_bit_array(m))
+def Generation_Gr(g1, r):
+    g1 = np.atleast_2d(g1)
+    combinations = itertools.combinations(g1, r)
+    res= []
+    for combo in combinations:
+        bitwise_product = np.bitwise_and.reduce(combo)
+        res.append(bitwise_product)
+
+    return np.matrix(res)
+def MatrixConcat(m1,m2):
+    return np.vstack((m1,  m2))
 
 
+def MatrixGenerator(m,r):
+    n=2**m
+    k=sum_binomial(m, r)
+    g_0=[1]*n
+    g_0=np.array(g_0)
+    g_0 = g_0.reshape(1, -1)
+    g_1=Creation_G1(m)
+    g_1 = np.array(g_1)
+    g_r=Generation_Gr(g_1, r)
+    res=np.vstack((g_0,g_1))
+    for i in range(2,r+1):
+        res=MatrixConcat(res,Generation_Gr(g_1,i))
+    return res
 def xor_array4(arr, zvec):
     z = [
         zvec[arr[0] - 1] ^ zvec[arr[1] - 1] ^ zvec[arr[2] - 1] ^ zvec[arr[3] - 1],
@@ -68,14 +112,16 @@ def find_most_common_bit(z):
 
 
 class RM:
-    def init(self, m, r, n, k):
+    def __init__(self, m, r):
         self.m = m
         self.r = r
-        self.n = n
-        self.k = k
+        self.n = 2**m
+        self.k =sum_binomial(m, r)
 
     def Encoding42(self, message):
-        result = np.dot(np.array(message), generate_matrix())
+        print(np.array(message))
+        print(MatrixGenerator(self.m, self.r))
+        result = np.dot(np.array(message), MatrixGenerator(self.m, self.r))
         return result % 2
 
     def Decoding42(self, messandmis):
