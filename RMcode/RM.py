@@ -143,7 +143,7 @@ class RM:
                     temp.reverse()
                     pr = np.matrix([int(q) for q in temp])
 
-                    vichitaemoe = np.dot(pr, np.matrix(Creation_G1(self.m)))
+                    vichitaemoe = np.dot(pr, np.matrix(Creation_G1(self.m)))%2
                     newq = np.array(np.subtract(messandmis, vichitaemoe) % 2).flatten()
                 else:
                     temp = list(result1)
