@@ -1,6 +1,3 @@
-import operator
-from audioop import reverse
-
 import numpy as np
 import math
 import itertools
@@ -32,7 +29,6 @@ def create_string(A, B, a_coordinates):
     return ''.join(result)
 def get_multipliers(num_multipliers, num_x, idx):
     index_combinations = list(combinations(range(1, num_x + 1), num_multipliers))
-    print("FROM GET MULTIPLIERS", num_multipliers, num_x, idx)
     if idx < 0 or idx >= len(index_combinations):
         raise IndexError("Индекс выходит за пределы доступных комбинаций")
     return tuple(x - 1 for x in index_combinations[idx])
@@ -44,8 +40,6 @@ def fill_bit_array(n):
         for j in range(n):
             array[j][i] = int(bit_representation[j])
     return array
-    ##for row in array:
-        ##print(" ".join(map(str, row)))
 
 def Creation_G1(m):
     return (fill_bit_array(m))
@@ -62,7 +56,7 @@ def MatrixConcat(m1,m2):
     return np.vstack((m1,  m2))
 
 
-def MatrixGenerator(m,r):
+def matrix_generator(m, r):
     n=2**m
     k=sum_binomial(m, r)
     g_0=[1]*n
@@ -75,29 +69,6 @@ def MatrixGenerator(m,r):
     for i in range(2,r+1):
         res=MatrixConcat(res,Generation_Gr(g_1,i))
     return res
-def xor_array4(arr, zvec):
-    z = [
-        zvec[arr[0] - 1] ^ zvec[arr[1] - 1] ^ zvec[arr[2] - 1] ^ zvec[arr[3] - 1],
-        zvec[arr[4] - 1] ^ zvec[arr[5] - 1] ^ zvec[arr[6] - 1] ^ zvec[arr[7] - 1],
-        zvec[arr[8] - 1] ^ zvec[arr[9] - 1] ^ zvec[arr[10] - 1] ^ zvec[arr[11] - 1],
-        zvec[arr[12] - 1] ^ zvec[arr[13] - 1] ^ zvec[arr[14] - 1] ^ zvec[arr[15] - 1],
-    ]
-    return z
-
-
-def xor_array8(arr, zvec):
-    z = [
-        zvec[arr[0] - 1] ^ zvec[arr[1] - 1],
-        zvec[arr[2] - 1] ^ zvec[arr[3] - 1],
-        zvec[arr[4] - 1] ^ zvec[arr[5] - 1],
-        zvec[arr[6] - 1] ^ zvec[arr[7] - 1],
-        zvec[arr[8] - 1] ^ zvec[arr[9] - 1],
-        zvec[arr[10] - 1] ^ zvec[arr[11] - 1],
-        zvec[arr[12] - 1] ^ zvec[arr[13] - 1],
-        zvec[arr[14] - 1] ^ zvec[arr[15] - 1],
-    ]
-    return z
-
 
 def find_most_common_bit(z):
     count_zeros = z.count(0)
@@ -119,7 +90,7 @@ class RM:
         """Функция для вычисления комбинаций C(n, k) = n! / (k! * (n-k)!)"""
         return math.comb(n, k)
 
-    def split_array(self):
+    def find_degree_block_lens(self):
         result = []
         i = self.k
         while i > 0:
@@ -130,17 +101,17 @@ class RM:
         result.reverse()
         return result
 
-    def Encoding42(self, message):
-        result = np.dot(np.array(message), MatrixGenerator(self.m, self.r))
+    def encode(self, message):
+        result = np.dot(np.array(message), matrix_generator(self.m, self.r))
         ##result = np.dot(np.array(message), C)
-        return result % 2
+        return np.array(result % 2).flatten()
 
-    def DecodeHighestDegreeBlock(self, block_len, encodedword, degree):
+    def decode_highest_degree_block(self, block_len, encoded_word, degree):
         result1=""
         for k in range(0,block_len):
             coords_to_fill=get_multipliers(degree, self.m, k)
             if len(coords_to_fill)==0:
-                result1 += str(find_most_common_bit(encodedword.tolist()))
+                result1 += str(find_most_common_bit(encoded_word.tolist()))
                 continue
             x_variants = []
 
@@ -152,49 +123,36 @@ class RM:
                 for j in range (0, 2**degree):
                     binary_str2 = bin(j)[2:]
                     binary_str2 = binary_str2.zfill(len(coords_to_fill))
-                    print("NOW WE KNOW", binary_str2, binary_str, coords_to_fill, encodedword)
                     pos = int(create_string(binary_str2, binary_str, coords_to_fill), 2)
-                    print("OHOHO",encodedword, pos)
-                    resarr.append(encodedword[pos])
+                    resarr.append(encoded_word[pos])
 
                 x_variants.append(xor_all_elements(resarr))
 
             result1+=str(find_most_common_bit(x_variants))
         return result1[::-1]
 
-    def Decoding42(self, messandmis):
+    def decode(self, messandmis):
         result1=""
-        messandmis = messandmis.A1
-        arr=self.split_array()
+        arr=self.find_degree_block_lens()
         newq=messandmis
         prev=newq
         for i in range(0, self.r+1):
-            print(result1)
-            print(Generation_Gr(Creation_G1(self.m),self.r))
-            if (i>0):
+            if i>0:
                 if i==self.r:
-                    print("GOT HERE")
-
                     temp = list(prev)
                     temp.reverse()
                     pr = np.matrix([int(q) for q in temp])
-                    print(np.matrix(Creation_G1(self.m)))
 
                     vichitaemoe = np.dot(pr, np.matrix(Creation_G1(self.m)))
                     newq = np.array(np.subtract(messandmis, vichitaemoe) % 2).flatten()
-                    print("HELLO ", newq)
                 else:
                     temp = list(result1)
                     temp.reverse()
                     pr=np.matrix([int(q) for q in temp])
-                    print("opa",pr)
                     vichitaemoe = np.dot(pr, Generation_Gr(Creation_G1(self.m),self.r))%2
-                    print("WE HERE", vichitaemoe)
                     newq=np.array(np.subtract(messandmis, vichitaemoe)%2).flatten()
                     messandmis = newq
-                    print("mm", messandmis)
-                    print(np.array(newq), "i equals", i)
-                    prev = self.DecodeHighestDegreeBlock(arr[i], newq, self.r-i)
-            result1+=self.DecodeHighestDegreeBlock(arr[i], newq, self.r-i)
+                    prev = self.decode_highest_degree_block(arr[i], newq, self.r - i)
+            result1+=self.decode_highest_degree_block(arr[i], newq, self.r - i)
         return result1[::-1]
 
