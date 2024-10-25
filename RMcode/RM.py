@@ -1,15 +1,41 @@
 import operator
+from audioop import reverse
+
 import numpy as np
 import math
 import itertools
+from itertools import combinations
 def sum_binomial(m, r):
     total = 0
     for i in range(r + 1):
         binom = math.comb(m, i)
         total += binom
     return total
+def xor_all_elements(arr):
+    result = 0
+    for num in arr:
+        result ^= num
+    return result
+def create_string(A, B, a_coordinates):
+    A = [str(a) for a in A]
+    B = [str(b) for b in B]
+    result = [''] * (len(A) + len(B))
+    for i, pos in enumerate(a_coordinates):
+        result[pos] = A[i]
 
+    b_index = 0
+    for i in range(len(result)):
+        if result[i] == '':
+            result[i] = B[b_index]
+            b_index += 1
 
+    return ''.join(result)
+def get_multipliers(num_multipliers, num_x, idx):
+    index_combinations = list(combinations(range(1, num_x + 1), num_multipliers))
+    print("FROM GET MULTIPLIERS", num_multipliers, num_x, idx)
+    if idx < 0 or idx >= len(index_combinations):
+        raise IndexError("Индекс выходит за пределы доступных комбинаций")
+    return tuple(x - 1 for x in index_combinations[idx])
 def fill_bit_array(n):
     num_rows = 2 ** n
     array = [[0] * num_rows for _ in range(n)]
@@ -21,35 +47,6 @@ def fill_bit_array(n):
     ##for row in array:
         ##print(" ".join(map(str, row)))
 
-def generate_matrix():
-    matrix = np.zeros((11, 16), dtype=int)
-    matrix[0] = np.ones(16, dtype=int)
-    matrix[1, 8:] = 1
-    matrix[2, 4:8] = 1
-    matrix[2, 12:16] = 1
-    matrix[3, 2:4] = 1
-    matrix[3, 6:8] = 1
-    matrix[3, 10:12] = 1
-    matrix[3, 14:16] = 1
-    matrix[4, 1::2] = 1
-    matrix[5, 12:] = 1
-    matrix[6, 14:16] = 1
-    matrix[6, 10:12] = 1
-    matrix[7, 15] = 1
-    matrix[7, 9] = 1
-    matrix[7, 13] = 1
-    matrix[7, 11] = 1
-    matrix[8, 14::] = 1
-    matrix[8, 6:8] = 1
-    matrix[9, 15] = 1
-    matrix[9, 13] = 1
-    matrix[9, 5] = 1
-    matrix[9, 7] = 1
-    matrix[10, 3] = 1
-    matrix[10, 7] = 1
-    matrix[10, 11] = 1
-    matrix[10, 15] = 1
-    return matrix
 def Creation_G1(m):
     return (fill_bit_array(m))
 def Generation_Gr(g1, r):
@@ -118,46 +115,86 @@ class RM:
         self.n = 2**m
         self.k =sum_binomial(m, r)
 
+    def comb(self, n, k):
+        """Функция для вычисления комбинаций C(n, k) = n! / (k! * (n-k)!)"""
+        return math.comb(n, k)
+
+    def split_array(self):
+        result = []
+        i = self.k
+        while i > 0:
+            # Вычисляем c(i) как комбинацию C из M по (R + len(result))
+            c_i = self.comb(self.m, self.r + len(result))
+            result.insert(0, c_i)  # Вставляем подмассив в начало результата
+            i -= c_i  # Двигаемся на c(i) элементов назад
+        result.reverse()
+        return result
+
     def Encoding42(self, message):
         result = np.dot(np.array(message), MatrixGenerator(self.m, self.r))
         ##result = np.dot(np.array(message), C)
         return result % 2
 
+    def DecodeHighestDegreeBlock(self, block_len, encodedword, degree):
+        result1=""
+        for k in range(0,block_len):
+            coords_to_fill=get_multipliers(degree, self.m, k)
+            if len(coords_to_fill)==0:
+                result1 += str(find_most_common_bit(encodedword.tolist()))
+                continue
+            x_variants = []
+
+            for i in range (0, 2**(self.m-degree)): ##b = 0..0, ... 1..1
+                resarr=[]
+                binary_str = bin(i)[2:]
+                binary_str=binary_str.zfill(self.m-len(coords_to_fill))
+
+                for j in range (0, 2**degree):
+                    binary_str2 = bin(j)[2:]
+                    binary_str2 = binary_str2.zfill(len(coords_to_fill))
+                    print("NOW WE KNOW", binary_str2, binary_str, coords_to_fill, encodedword)
+                    pos = int(create_string(binary_str2, binary_str, coords_to_fill), 2)
+                    print("OHOHO",encodedword, pos)
+                    resarr.append(encodedword[pos])
+
+                x_variants.append(xor_all_elements(resarr))
+
+            result1+=str(find_most_common_bit(x_variants))
+        return result1[::-1]
+
     def Decoding42(self, messandmis):
+        result1=""
         messandmis = messandmis.A1
-        z4 = [
-            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
-            [1, 2, 5, 6, 3, 4, 7, 8, 9, 10, 13, 14, 11, 12, 15, 16],
-            [1, 3, 5, 7, 2, 4, 6, 8, 9, 11, 13, 15, 10, 12, 14, 16],
-            [1, 2, 9, 10, 3, 4, 11, 12, 5, 6, 13, 14, 7, 8, 15, 16],
-            [1, 3, 9, 11, 2, 4, 10, 12, 5, 7, 13, 15, 6, 8, 14, 16],
-            [1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 4, 8, 12, 16]
-        ]
-        z8 = [
-            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
-            [1, 3, 2, 4, 5, 7, 6, 8, 9, 11, 10, 12, 13, 15, 14, 16],
-            [1, 5, 2, 6, 3, 7, 4, 8, 9, 13, 10, 14, 11, 15, 12, 16],
-            [1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15, 8, 16]
-        ]
+        arr=self.split_array()
+        newq=messandmis
+        prev=newq
+        for i in range(0, self.r+1):
+            print(result1)
+            print(Generation_Gr(Creation_G1(self.m),self.r))
+            if (i>0):
+                if i==self.r:
+                    print("GOT HERE")
 
-        zvec = messandmis
-        x = []
+                    temp = list(prev)
+                    temp.reverse()
+                    pr = np.matrix([int(q) for q in temp])
+                    print(np.matrix(Creation_G1(self.m)))
 
-        for zi in z4:
-            z = xor_array4(zi, zvec)
-            most_common_bit = find_most_common_bit(z)
-            x.append(most_common_bit)
-
-        zvec = [0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1]
-
-        for zi in z8:
-            z = xor_array8(zi, zvec)
-            most_common_bit = find_most_common_bit(z)
-            x.append(most_common_bit)
-
-        zvec = [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-
-        x.append(find_most_common_bit(zvec))
-        x.reverse()
-        return x
+                    vichitaemoe = np.dot(pr, np.matrix(Creation_G1(self.m)))
+                    newq = np.array(np.subtract(messandmis, vichitaemoe) % 2).flatten()
+                    print("HELLO ", newq)
+                else:
+                    temp = list(result1)
+                    temp.reverse()
+                    pr=np.matrix([int(q) for q in temp])
+                    print("opa",pr)
+                    vichitaemoe = np.dot(pr, Generation_Gr(Creation_G1(self.m),self.r))%2
+                    print("WE HERE", vichitaemoe)
+                    newq=np.array(np.subtract(messandmis, vichitaemoe)%2).flatten()
+                    messandmis = newq
+                    print("mm", messandmis)
+                    print(np.array(newq), "i equals", i)
+                    prev = self.DecodeHighestDegreeBlock(arr[i], newq, self.r-i)
+            result1+=self.DecodeHighestDegreeBlock(arr[i], newq, self.r-i)
+        return result1[::-1]
 
