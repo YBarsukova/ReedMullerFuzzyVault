@@ -30,6 +30,7 @@ def create_string(A, B, a_coordinates):
 def get_multipliers(num_multipliers, num_x, idx):
     index_combinations = list(combinations(range(1, num_x + 1), num_multipliers))
     if idx < 0 or idx >= len(index_combinations):
+        print("idx", idx, len(index_combinations))
         raise IndexError("Индекс выходит за пределы доступных комбинаций")
     return tuple(x - 1 for x in index_combinations[idx])
 def fill_bit_array(n):
@@ -91,15 +92,16 @@ class RM:
         return math.comb(n, k)
 
     def find_degree_block_lens(self):
-        result = []
-        i = self.k
-        while i > 0:
-            # Вычисляем c(i) как комбинацию C из M по (R + len(result))
-            c_i = self.comb(self.m, self.r + len(result))
-            result.insert(0, c_i)  # Вставляем подмассив в начало результата
-            i -= c_i  # Двигаемся на c(i) элементов назад
-        result.reverse()
-        return result
+        # result = []
+        # i = self.k
+        # while i > 0:
+        #     # Вычисляем c(i) как комбинацию C из M по (R + len(result))
+        #     c_i = self.comb(self.m, self.r + len(result))
+        #     result.insert(0, c_i)  # Вставляем подмассив в начало результата
+        #     i -= c_i  # Двигаемся на c(i) элементов назад
+        # result.reverse()
+        # return result
+        return [self.comb(self.m, i) for i in range(self.r, -1, -1)]
 
     def encode(self, message):
         result = np.dot(np.array(message), matrix_generator(self.m, self.r))
@@ -129,21 +131,28 @@ class RM:
                 x_variants.append(xor_all_elements(resarr))
 
             result1+=str(find_most_common_bit(x_variants))
-        return result1[::-1]
+        return result1
 
     def decode(self, messandmis):
         result1=""
         arr=self.find_degree_block_lens()
+        print("ar",arr)
         newq=messandmis
         prev=newq
         for i in range(0, self.r+1):
+            print(f'{len(prev)} = {arr[i]}')
+            print(prev)
+            #assert len(prev) == arr[i]
             if i>0:
                 if i==self.r:
+                    print("+")
                     temp = list(prev)
+                    # assert True
                     temp.reverse()
                     pr = np.matrix([int(q) for q in temp])
-
+                    print(pr)
                     vichitaemoe = np.dot(pr, np.matrix(Creation_G1(self.m)))%2
+                    # vichitaemoe = (pr @ np.matrix(Creation_G1(self.m))) % 2
                     newq = np.array(np.subtract(messandmis, vichitaemoe) % 2).flatten()
                 else:
                     temp = list(result1)
@@ -153,6 +162,25 @@ class RM:
                     newq=np.array(np.subtract(messandmis, vichitaemoe)%2).flatten()
                     messandmis = newq
                     prev = self.decode_highest_degree_block(arr[i], newq, self.r - i)
+                    print("ppp", prev)
             result1+=self.decode_highest_degree_block(arr[i], newq, self.r - i)
         return result1[::-1]
+
+    def decode2(self, messandmis):
+        z=messandmis.copy()
+        res=[]
+        r_i=self.r
+        for i in range(self.r, 0, -1):
+            #print(z)
+           # print(i, self.comb(self.m, i))
+            mi=list(map(int, self.decode_highest_degree_block(self.comb(self.m, i), z, i)))
+            #print(mi)
+            res=mi+res
+            #print(Generation_Gr(Creation_G1(self.m),i).shape)
+            z=(z-(np.array(mi)@ Generation_Gr(Creation_G1(self.m),i))%2)%2
+            z = z.A1
+
+        res=[1 if sum(z) > 2**(self.m-1) else 0]+res
+        return res
+
 
