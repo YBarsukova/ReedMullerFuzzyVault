@@ -19,7 +19,7 @@ from RMcode.RM import sum_binomial
 # ##print(matrix)
 # #print(RMcode.RM.sum_binomial(5,2))
 c=RM.RM(4,2)
-for i in range(100):
+for i in range(10):
     message = [random.choice([0,1]) for i in range(RM.sum_binomial(c.m, c.r))]  # 11 бит
 #print(c.encode(message))
     emessage=c.encode(message)
@@ -31,3 +31,6 @@ print(c.decode2(emessage))
 ##print(MatrixGenerator(4,2))
 ##print(Generation_Gr(Creation_G1(4),2))
 #print(RM.Creation_G1(3))
+m=[1,1,1,1,0,0,0,0,0,0,0]
+e=c.encode(m)
+print(c.DecodeWithErases(e))

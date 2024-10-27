@@ -8,6 +8,9 @@ def sum_binomial(m, r):
         binom = math.comb(m, i)
         total += binom
     return total
+def replace_elements(arr, target, replacement):
+    return [replacement if x == target else x for x in arr]
+
 def xor_all_elements(arr):
     result = 0
     for num in arr:
@@ -182,5 +185,15 @@ class RM:
 
         res=[1 if sum(z) > 2**(self.m-1) else 0]+res
         return res
+    def DecodeWithErases(self, emess):
+        ones=replace_elements(emess.copy(), 3, 1)
+        zeros = replace_elements(emess.copy(), 3, 0)
+        o=self.decode2(ones)
+        o_var=self.encode(o)
+        z=self.decode2(zeros)
+        z_var=self.encode(z)
+        diff_count = lambda a: sum(x != y for x, y in zip(emess, a))
+        return o if diff_count(o_var) <= diff_count(z_var) else z
+
 
 
