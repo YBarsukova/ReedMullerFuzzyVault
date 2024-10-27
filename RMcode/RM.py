@@ -1,7 +1,8 @@
 import numpy as np
 import math
 import itertools
-from itertools import combinations
+from itertools import islice, combinations
+small_values_cache = {}
 def sum_binomial(m, r):
     total = 0
     for i in range(r + 1):
@@ -31,11 +32,27 @@ def create_string(A, B, a_coordinates):
 
     return ''.join(result)
 def get_multipliers(num_multipliers, num_x, idx):
-    index_combinations = list(combinations(range(1, num_x + 1), num_multipliers))
-    if idx < 0 or idx >= len(index_combinations):
-        print("idx", idx, len(index_combinations))
+    if (math.comb(num_x, num_multipliers)<5000):
+        return get_multipliers_for_small_values(num_multipliers, num_x, idx)
+    else:
+        return get_multipliers_for_huge_values(num_multipliers, num_x, idx)
+
+def get_multipliers_for_huge_values(num_multipliers, num_x, idx):
+    try:
+        selected_combination = next(islice(combinations(range(0, num_x), num_multipliers), idx, None))
+    except StopIteration:
         raise IndexError("Индекс выходит за пределы доступных комбинаций")
-    return tuple(x - 1 for x in index_combinations[idx])
+    return selected_combination
+
+
+def get_multipliers_for_small_values(num_multipliers, num_x, idx):
+    cache_key = (num_multipliers, num_x)
+    if cache_key not in small_values_cache:
+        small_values_cache[cache_key] = list(combinations(range(0, num_x), num_multipliers))
+    index_combinations = small_values_cache[cache_key]
+    if idx < 0 or idx >= len(index_combinations):
+        raise IndexError("Индекс выходит за пределы доступных комбинаций")
+    return index_combinations[idx]
 def fill_bit_array(n):
     num_rows = 2 ** n
     array = [[0] * num_rows for _ in range(n)]
@@ -151,7 +168,7 @@ class RM:
 
         res=[1 if sum(z) > 2**(self.m-1) else 0]+res
         return res
-    def Decode(self, emess):
+    def Decode(self, emess): #even with erases
         ones=replace_elements(emess.copy(), 3, 1)
         zeros = replace_elements(emess.copy(), 3, 0)
         o=self.decode2(ones)
