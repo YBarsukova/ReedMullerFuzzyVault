@@ -135,40 +135,6 @@ class RM:
 
             result1+=str(find_most_common_bit(x_variants))
         return result1
-
-    def decode(self, messandmis):
-        result1=""
-        arr=self.find_degree_block_lens()
-        print("ar",arr)
-        newq=messandmis
-        prev=newq
-        for i in range(0, self.r+1):
-            print(f'{len(prev)} = {arr[i]}')
-            print(prev)
-            #assert len(prev) == arr[i]
-            if i>0:
-                if i==self.r:
-                    print("+")
-                    temp = list(prev)
-                    # assert True
-                    temp.reverse()
-                    pr = np.matrix([int(q) for q in temp])
-                    print(pr)
-                    vichitaemoe = np.dot(pr, np.matrix(Creation_G1(self.m)))%2
-                    # vichitaemoe = (pr @ np.matrix(Creation_G1(self.m))) % 2
-                    newq = np.array(np.subtract(messandmis, vichitaemoe) % 2).flatten()
-                else:
-                    temp = list(result1)
-                    temp.reverse()
-                    pr=np.matrix([int(q) for q in temp])
-                    vichitaemoe = np.dot(pr, Generation_Gr(Creation_G1(self.m),self.r))%2
-                    newq=np.array(np.subtract(messandmis, vichitaemoe)%2).flatten()
-                    messandmis = newq
-                    prev = self.decode_highest_degree_block(arr[i], newq, self.r - i)
-                    print("ppp", prev)
-            result1+=self.decode_highest_degree_block(arr[i], newq, self.r - i)
-        return result1[::-1]
-
     def decode2(self, messandmis):
         z=messandmis.copy()
         res=[]
@@ -185,7 +151,7 @@ class RM:
 
         res=[1 if sum(z) > 2**(self.m-1) else 0]+res
         return res
-    def DecodeWithErases(self, emess):
+    def Decode(self, emess):
         ones=replace_elements(emess.copy(), 3, 1)
         zeros = replace_elements(emess.copy(), 3, 0)
         o=self.decode2(ones)

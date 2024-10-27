@@ -24,13 +24,17 @@ for i in range(10):
 #print(c.encode(message))
     emessage=c.encode(message)
     emessage[2]=emessage[2]^1
-    d = c.decode2(emessage)
+    d = c.Decode(emessage)
     assert message == d
-print(c.decode2(emessage))
+print(c.Decode(emessage))
 ##print(sum_binomial(4,2))
 ##print(MatrixGenerator(4,2))
 ##print(Generation_Gr(Creation_G1(4),2))
 #print(RM.Creation_G1(3))
 m=[1,1,1,1,0,0,0,0,0,0,0]
 e=c.encode(m)
-print(c.DecodeWithErases(e))
+e[1]=3
+e[2]=3
+e[4]=3
+e[5]=3
+print(c.Decode(e))
