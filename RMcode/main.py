@@ -1,40 +1,15 @@
 import RM
 import random
-#from RMcode.RM import sum_binomial, fill_bit_array, MatrixGenerator, Generation_Gr, Creation_G1
-import numpy as np
-from itertools import combinations
-
-import RMcode.RM
-from RMcode.RM import sum_binomial
-
-# c=RM.RM(4,2)
-# message = [0,1,1,1,1,1,0,1,1,0,0]  # 11 бит
-# print(c.encode(message))
-# emessage=c.encode(message)
-# #emessage[2]=1
-# print("dec", c.decode2(emessage))
-
-# print(RM.get_multipliers(2, 3,2))
-# ##matrix = RM.generate_matrix()
-# ##print(matrix)
-# #print(RMcode.RM.sum_binomial(5,2))
-c=RM.RM(4,2)
-for i in range(1000):
-    message = [random.choice([0,1]) for i in range(RM.sum_binomial(c.m, c.r))]  # 11 бит
-#print(c.encode(message))
+c=RM.RM(10,1)
+for i in range(10):
+    message = [random.choice([0,1]) for i in range(RM.sum_binomial(c.m, c.r))]
     emessage=c.encode(message)
+    #print(emessage)
     emessage[2]=emessage[2]^1
+    for j in range(3):
+        emessage[j] = 3
+    #print(emessage)
     d = c.Decode(emessage)
+    #print(d)
     assert message == d
-print(c.Decode(emessage))
-##print(sum_binomial(4,2))
-##print(MatrixGenerator(4,2))
-##print(Generation_Gr(Creation_G1(4),2))
-#print(RM.Creation_G1(3))
-m=[1,1,1,1,0,0,0,0,0,0,0]
-e=c.encode(m)
-e[1]=3
-e[2]=3
-e[4]=3
-e[5]=3
-print(c.Decode(e))
+print(c.decode2(emessage))

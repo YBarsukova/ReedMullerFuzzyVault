@@ -1,7 +1,8 @@
 import numpy as np
 import math
 import itertools
-from itertools import islice, combinations
+from itertools import combinations
+from itertools import islice
 small_values_cache = {}
 def sum_binomial(m, r):
     total = 0
@@ -11,7 +12,6 @@ def sum_binomial(m, r):
     return total
 def replace_elements(arr, target, replacement):
     return [replacement if x == target else x for x in arr]
-
 def xor_all_elements(arr):
     result = 0
     for num in arr:
@@ -106,26 +106,21 @@ class RM:
         self.r = r
         self.n = 2**m
         self.k =sum_binomial(m, r)
+        self.d=2**(self.m-self.r)
+        self.MistakesCount=self.d/2-1
+        self.ErasesCount=self.d-1
 
     def comb(self, n, k):
-        """Функция для вычисления комбинаций C(n, k) = n! / (k! * (n-k)!)"""
         return math.comb(n, k)
-
+    def GetErasesCount(self):
+        return self.ErasesCount
+    def GetMistakesCount(self):
+        return self.MistakesCount
     def find_degree_block_lens(self):
-        # result = []
-        # i = self.k
-        # while i > 0:
-        #     # Вычисляем c(i) как комбинацию C из M по (R + len(result))
-        #     c_i = self.comb(self.m, self.r + len(result))
-        #     result.insert(0, c_i)  # Вставляем подмассив в начало результата
-        #     i -= c_i  # Двигаемся на c(i) элементов назад
-        # result.reverse()
-        # return result
         return [self.comb(self.m, i) for i in range(self.r, -1, -1)]
 
     def encode(self, message):
         result = np.dot(np.array(message), matrix_generator(self.m, self.r))
-        ##result = np.dot(np.array(message), C)
         return np.array(result % 2).flatten()
 
     def decode_highest_degree_block(self, block_len, encoded_word, degree):
@@ -152,31 +147,24 @@ class RM:
 
             result1+=str(find_most_common_bit(x_variants))
         return result1
+
     def decode2(self, messandmis):
         z=messandmis.copy()
         res=[]
-        r_i=self.r
         for i in range(self.r, 0, -1):
-            #print(z)
-           # print(i, self.comb(self.m, i))
             mi=list(map(int, self.decode_highest_degree_block(self.comb(self.m, i), z, i)))
-            #print(mi)
             res=mi+res
-            #print(Generation_Gr(Creation_G1(self.m),i).shape)
             z=(z-(np.array(mi)@ Generation_Gr(Creation_G1(self.m),i))%2)%2
             z = z.A1
-
         res=[1 if sum(z) > 2**(self.m-1) else 0]+res
         return res
-    def Decode(self, emess): #even with erases
-        ones=replace_elements(emess.copy(), 3, 1)
+
+    def Decode(self, emess):  # even with erases
+        ones = replace_elements(emess.copy(), 3, 1)
         zeros = replace_elements(emess.copy(), 3, 0)
-        o=self.decode2(ones)
-        o_var=self.encode(o)
-        z=self.decode2(zeros)
-        z_var=self.encode(z)
+        o = self.decode2(ones)
+        o_var = self.encode(o)
+        z = self.decode2(zeros)
+        z_var = self.encode(z)
         diff_count = lambda a: sum(x != y for x, y in zip(emess, a))
         return o if diff_count(o_var) <= diff_count(z_var) else z
-
-
-
