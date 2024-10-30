@@ -100,63 +100,83 @@ def find_most_common_bit(z):
         return 1
 
 
+import numpy as np
+import math
+
+
 class RM:
     def __init__(self, m, r):
         self.m = m
         self.r = r
-        self.n = 2**m
-        self.k =sum_binomial(m, r)
-        self.d=2**(self.m-self.r)
-        self.MistakesCount=self.d/2-1
-        self.ErasesCount=self.d-1
+        self.n = 2 ** m
+        self.k = sum_binomial(m, r)
+        self.d = 2 ** (self.m - self.r)
+        self.MistakesCount = self.d / 2 - 1
+        self.ErasesCount = self.d - 1
+        self.matrix_cache = {}
+        self.g1 =Creation_G1(m)
+        self.gr_cache = {}
 
     def comb(self, n, k):
         return math.comb(n, k)
+
     def GetErasesCount(self):
         return self.ErasesCount
+
     def GetMistakesCount(self):
         return self.MistakesCount
+
     def find_degree_block_lens(self):
         return [self.comb(self.m, i) for i in range(self.r, -1, -1)]
 
+    def get_matrix(self, m, r):
+        if (m, r) not in self.matrix_cache:
+            self.matrix_cache[(m, r)] = matrix_generator(m, r)
+        return self.matrix_cache[(m, r)]
+
+
+    def get_gr(self, r):
+        if r not in self.gr_cache:
+            self.gr_cache[r] = Generation_Gr(self.g1, r)
+        return self.gr_cache[r]
+
     def encode(self, message):
-        result = np.dot(np.array(message), matrix_generator(self.m, self.r))
+        matrix = self.get_matrix(self.m, self.r)
+        result = np.dot(np.array(message), matrix)
         return np.array(result % 2).flatten()
 
     def decode_highest_degree_block(self, block_len, encoded_word, degree):
-        result1=""
-        for k in range(0,block_len):
-            coords_to_fill=get_multipliers(degree, self.m, k)
-            if len(coords_to_fill)==0:
+        result1 = ""
+        for k in range(block_len):
+            coords_to_fill = get_multipliers(degree, self.m, k)
+            if len(coords_to_fill) == 0:
                 result1 += str(find_most_common_bit(encoded_word.tolist()))
                 continue
             x_variants = []
 
-            for i in range (0, 2**(self.m-degree)): ##b = 0..0, ... 1..1
-                resarr=[]
-                binary_str = bin(i)[2:]
-                binary_str=binary_str.zfill(self.m-len(coords_to_fill))
+            for i in range(2 ** (self.m - degree)):
+                resarr = []
+                binary_str = bin(i)[2:].zfill(self.m - len(coords_to_fill))
 
-                for j in range (0, 2**degree):
-                    binary_str2 = bin(j)[2:]
-                    binary_str2 = binary_str2.zfill(len(coords_to_fill))
+                for j in range(2 ** degree):
+                    binary_str2 = bin(j)[2:].zfill(len(coords_to_fill))
                     pos = int(create_string(binary_str2, binary_str, coords_to_fill), 2)
                     resarr.append(encoded_word[pos])
 
                 x_variants.append(xor_all_elements(resarr))
 
-            result1+=str(find_most_common_bit(x_variants))
+            result1 += str(find_most_common_bit(x_variants))
         return result1
 
     def decode2(self, messandmis):
-        z=messandmis.copy()
-        res=[]
+        z = messandmis.copy()
+        res = []
         for i in range(self.r, 0, -1):
-            mi=list(map(int, self.decode_highest_degree_block(self.comb(self.m, i), z, i)))
-            res=mi+res
-            z=(z-(np.array(mi)@ Generation_Gr(Creation_G1(self.m),i))%2)%2
+            mi = list(map(int, self.decode_highest_degree_block(self.comb(self.m, i), z, i)))
+            res = mi + res
+            z = (z - (np.array(mi) @ self.get_gr( i)) % 2) % 2
             z = z.A1
-        res=[1 if sum(z) > 2**(self.m-1) else 0]+res
+        res = [1 if sum(z) > 2 ** (self.m - 1) else 0] + res
         return res
 
     def Decode(self, emess):  # even with erases
