@@ -3,11 +3,16 @@ import math
 import itertools
 from itertools import combinations
 from itertools import islice
+from functools import lru_cache
 small_values_cache = {}
+@lru_cache(None)
+def binomial_cached(m, i):
+    return math.comb(m, i)
+
 def sum_binomial(m, r):
     total = 0
     for i in range(r + 1):
-        binom = math.comb(m, i)
+        binom = binomial_cached(m, i)
         total += binom
     return total
 def replace_elements(arr, target, replacement):
@@ -31,6 +36,7 @@ def create_string(A, B, a_coordinates):
             b_index += 1
 
     return ''.join(result)
+@lru_cache(None)
 def get_multipliers(num_multipliers, num_x, idx):
     if (math.comb(num_x, num_multipliers)<5000):
         return get_multipliers_for_small_values(num_multipliers, num_x, idx)
@@ -99,9 +105,6 @@ def find_most_common_bit(z):
     else:
         return 1
 
-
-import numpy as np
-import math
 
 
 class RM:

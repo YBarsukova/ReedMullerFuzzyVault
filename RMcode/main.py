@@ -4,7 +4,7 @@ import RM
 
 def measure_main_execution_time():
     start_time = time.time()
-    c=RM.RM(4,1)
+    c=RM.RM(4,2)
     for i in range(200000):
         message = [random.choice([0,1]) for i in range(RM.sum_binomial(c.m, c.r))]
         emessage=c.encode(message)
