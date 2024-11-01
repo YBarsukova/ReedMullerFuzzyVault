@@ -23,7 +23,7 @@ def measure_main_execution_time():
     #         for j in range(3):
     #             emessage[j] = 3
     #
-    #         d = c.Decode(emessage)
+    #         d = c.decode(emessage)
     #         assert message == d, f"Decoded message does not match the original message for input {message}."
     results = Testing.run_tests_for_error_counts(c, message)
     print(results)

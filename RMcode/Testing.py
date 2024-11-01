@@ -26,7 +26,7 @@ def test_error_correction(code, message, num_errors):
 
     for error_positions in tqdm(error_combinations, desc=f"Testing {num_errors} errors"):
         corrupted_message = apply_errors(encoded_message, error_positions)
-        decoded_message = code.Decode(corrupted_message)
+        decoded_message = code.decode(corrupted_message)
         if decoded_message == message:
             successful_corrections += 1
 
@@ -40,7 +40,7 @@ def run_tests_for_error_counts(code, message):
 
     results = []
 
-    for num_errors in range(int(code.MistakesCount), max_errors):
+    for num_errors in range(int(code.mistakes_count), max_errors):
         total_combinations = math.comb(message_length, num_errors)
         if total_combinations > 1e6:
             print(f"Слишком много комбинаций для {num_errors} ошибок ({total_combinations} комбинаций). Пропуск...")
