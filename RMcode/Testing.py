@@ -40,7 +40,7 @@ def run_tests_for_error_counts(code, message):
 
     results = []
 
-    for num_errors in range(1, max_errors):
+    for num_errors in range(int(code.MistakesCount), max_errors):
         total_combinations = math.comb(message_length, num_errors)
         if total_combinations > 1e6:
             print(f"Слишком много комбинаций для {num_errors} ошибок ({total_combinations} комбинаций). Пропуск...")
@@ -48,5 +48,7 @@ def run_tests_for_error_counts(code, message):
         successful, unsuccessful = test_error_correction(code, message, num_errors)
         results.append((num_errors, successful, unsuccessful))
         print(f"\n Для {num_errors} ошибок: Успешно исправлено {successful} из {successful + unsuccessful}")
+        if (successful==0):
+            break
 
     return results

@@ -9,7 +9,7 @@ def generate_deterministic_message(number, length):
 
 def measure_main_execution_time():
     start_time = time.time()
-    c = RM.RM(8, 3)
+    c = RM.RM(5, 2)
     message_length = RM.sum_binomial(c.m, c.r)
     message = generate_deterministic_message(42, message_length)
     max_value = 2 ** message_length
