@@ -2,9 +2,10 @@ import numpy as np
 import math
 import itertools
 from itertools import combinations, islice
-from functools import lru_cache
-
+from functools import lru_cache, partial
+from numba import njit
 small_values_cache = {}
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 
 @lru_cache(None)
@@ -24,12 +25,12 @@ def replace_elements(arr, target, replacement):
     return [replacement if x == target else x for x in arr]
 
 
+#@njit
 def xor_all_elements(arr):
     result = 0
     for num in arr:
         result ^= num
     return result
-
 
 def create_string(a_list, b_list, a_coordinates):
     a_list = [str(a) for a in a_list]
@@ -61,6 +62,20 @@ def get_multipliers_for_huge_values(num_multipliers, num_x, idx):
     except StopIteration:
         raise IndexError("Index out of bounds for combinations")
     return selected_combination
+def process_k(k, degree, m, encoded_word_chunk):
+    coords_to_fill = get_multipliers(degree, m, k)
+    if len(coords_to_fill) == 0:
+        return str(find_most_common_bit(encoded_word_chunk))
+    x_variants = []
+    for i in range(2 ** (m - degree)):
+        res_arr = []
+        binary_str = bin(i)[2:].zfill(m - len(coords_to_fill))
+        for j in range(2 ** degree):
+            binary_str2 = bin(j)[2:].zfill(len(coords_to_fill))
+            pos = int(create_string(binary_str2, binary_str, coords_to_fill), 2)
+            res_arr.append(encoded_word_chunk[pos])
+        x_variants.append(xor_all_elements(res_arr))
+    return str(find_most_common_bit(x_variants))
 
 
 def get_multipliers_for_small_values(num_multipliers, num_x, idx):
@@ -88,30 +103,27 @@ def creation_g1(m):
 
 
 def generation_gr(g1, r):
-    g1 = np.atleast_2d(g1)
     combs = itertools.combinations(g1, r)
-    res = []
-    for combo in combs:
-        bitwise_product = np.bitwise_and.reduce(combo)
-        res.append(bitwise_product)
+    with ProcessPoolExecutor() as executor:
+        res = list(executor.map(bitwise_and_reduce, combs))
     return np.matrix(res)
 
-
+def bitwise_and_reduce(combo):
+    return np.bitwise_and.reduce(combo)
 def matrix_concat(m1, m2):
     return np.vstack((m1, m2))
 
 
+
 def matrix_generator(m, r):
     n = 2 ** m
-    g_0 = [1] * n
-    g_0 = np.array(g_0).reshape(1, -1)
+    g_0 = np.ones((1, n), dtype=np.int8)
     g_1 = creation_g1(m)
-    g_1 = np.array(g_1)
     res = np.vstack((g_0, g_1))
     for i in range(2, r + 1):
-        res = matrix_concat(res, generation_gr(g_1, i))
+        gr = generation_gr(g_1, i)
+        res = np.vstack((res, gr))
     return res
-
 
 def find_most_common_bit(z):
     return 0 if z.count(0) > z.count(1) else 1
@@ -159,24 +171,12 @@ class RM:
         return np.array(result % 2).flatten()
 
     def decode_highest_degree_block(self, block_len, encoded_word, degree):
-        result1 = ""
-        for k in range(block_len):
-            coords_to_fill = get_multipliers(degree, self.m, k)
-            if len(coords_to_fill) == 0:
-                result1 += str(find_most_common_bit(encoded_word.tolist()))
-                continue
-            x_variants = []
-            for i in range(2 ** (self.m - degree)):
-                res_arr = []
-                binary_str = bin(i)[2:].zfill(self.m - len(coords_to_fill))
-                for j in range(2 ** degree):
-                    binary_str2 = bin(j)[2:].zfill(len(coords_to_fill))
-                    pos = int(create_string(binary_str2, binary_str, coords_to_fill), 2)
-                    res_arr.append(encoded_word[pos])
-                x_variants.append(xor_all_elements(res_arr))
-            result1 += str(find_most_common_bit(x_variants))
-        return result1
+        with ThreadPoolExecutor() as executor:
+            process_k_partial = partial(process_k, degree=degree, m=self.m, encoded_word_chunk=encoded_word)
+            result_list = list(executor.map(process_k_partial, range(block_len)))
 
+        result1 = ''.join(result_list)
+        return result1
     def decode_without_erasures(self, mess_and_mis):
         z = mess_and_mis.copy()
         res = []

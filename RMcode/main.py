@@ -8,6 +8,25 @@ def generate_deterministic_message(number, length):
     binary_message = list(map(int, bin(number)[2:].zfill(length)))
     return binary_message
 
+
+def measure_main_execution_time_deterministic(c):
+    start_time = time.time()
+    message_length = RM.sum_binomial(c.m, c.r)
+    message = generate_deterministic_message(42, message_length)
+    max_value = 2 ** message_length
+    for repeat in range(1):
+        for number in range(100):
+            message = generate_deterministic_message(number, message_length)
+            emessage = c.encode(message)
+            emessage[2] = emessage[2] ^ 1
+            for j in range(3):
+                emessage[j] = 3
+            d = c.decode(emessage)
+            assert message == d, f"Decoded message does not match the original message for input {message}."
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time:.4f} seconds")
+
 def measure_main_execution_time():
     start_time = time.time()
     c = RM.RM(4, 2)
@@ -42,7 +61,10 @@ def test_random(code):
         print(i,prev)
         i+=1
 
-
-#measure_main_execution_time
-code=RM.RM(8,2)
-test_random(code)
+def main():
+    #measure_main_execution_time
+    code=RM.RM(10,2)
+    measure_main_execution_time_deterministic(code)
+    #test_random(code)
+if __name__ == '__main__':
+    main()
