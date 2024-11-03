@@ -59,18 +59,21 @@ def test_random(code):
     statistics = ["(" + str(code.r) + " " + str(code.m) + ")"]
     while prev > 0:
         prev=tests_for_a_certain_number_of_errors(code, i)
-        print(i,prev)
+        #print(i,prev)
         i+=1
         statistics.append(str(i)+" "+str(prev))
     Exel.update_excel_with_data("test_data.xlsx", statistics)
 
 def main():
     #measure_main_execution_time
-    code=RM.RM(4,2)
+    #code=RM.RM(4,2)
     #measure_main_execution_time_deterministic(code)
     #test_random(code)
     #code = RM.RM(localr, localm)
     # measure_main_execution_time_deterministic(code)
-    test_random(code)
+    common_codes=[RM.RM(3,1),RM.RM(4,1),RM.RM(4,2),RM.RM(5,1),RM.RM(5,2),RM.RM(5,3),RM.RM(6,1),RM.RM(6,2),RM.RM(6,3),RM.RM(8,1),RM.RM(8,2),RM.RM(8,3)]#,RM.RM(10,1),RM.RM(10,2),RM.RM(10,4)]
+    for code in common_codes:
+        test_random(code)
+        print(f"Закончили вычисления вероятности для кода ({code.m}, {code.r})")
 if __name__ == '__main__':
     main()

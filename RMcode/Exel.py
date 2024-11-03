@@ -7,16 +7,12 @@ def update_excel_with_data(filename, data_lines):
     config = data_lines[0].strip("()").split()
     r, m = int(config[0]), int(config[1])
     column_header = f"Код ({m},{r})"
-
     if os.path.exists(filename):
-
         workbook = load_workbook(filename)
         sheet = workbook.active
     else:
         df_initial = pd.DataFrame(columns=["Ошибки\\Коды", column_header])
-        for i in range(31):
-            df_initial.loc[i] = [f"max+{i}" if i > 0 else "max", None]
-        df_initial.loc[0, column_header] = 100
+        df_initial.loc[0] = ["max", 100]
         df_initial.to_excel(filename, index=False)
         workbook = load_workbook(filename)
         sheet = workbook.active
@@ -29,8 +25,19 @@ def update_excel_with_data(filename, data_lines):
 
     for i, line in enumerate(data_lines[1:], start=1):
         _, value = line.split()
-        row_index = i + 2
-        percentage_value = round(float(value) * 100)
-        sheet.cell(row=row_index, column=col_index, value=percentage_value)
+        row_label = f"max+{i}"
 
+        row_index = None
+        for row in range(2, sheet.max_row + 1):
+            if sheet.cell(row=row, column=1).value == row_label:
+                row_index = row
+                break
+
+        if row_index is None:
+            row_index = sheet.max_row + 1
+            sheet.cell(row=row_index, column=1, value=row_label)
+
+        if sheet.cell(row=row_index, column=col_index).value is None:
+            percentage_value = round(float(value) * 100)
+            sheet.cell(row=row_index, column=col_index, value=percentage_value)
     workbook.save(filename)
