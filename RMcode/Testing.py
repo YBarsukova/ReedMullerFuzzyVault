@@ -1,7 +1,6 @@
 import itertools
 import math
 import random
-
 import numpy as np
 from tqdm import tqdm
 import RM

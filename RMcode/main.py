@@ -2,7 +2,7 @@ import time
 import RM
 import Testing
 from RMcode.Testing import tests_for_a_certain_number_of_errors
-
+import Exel
 
 def generate_deterministic_message(number, length):
     binary_message = list(map(int, bin(number)[2:].zfill(length)))
@@ -56,15 +56,21 @@ def measure_main_execution_time():
 def test_random(code):
     prev = 1
     i=code.mistakes_count+1
+    statistics = ["(" + str(code.r) + " " + str(code.m) + ")"]
     while prev > 0:
         prev=tests_for_a_certain_number_of_errors(code, i)
         print(i,prev)
         i+=1
+        statistics.append(str(i)+" "+str(prev))
+    Exel.update_excel_with_data("test_data.xlsx", statistics)
 
 def main():
     #measure_main_execution_time
-    code=RM.RM(5,2)
-    measure_main_execution_time_deterministic(code)
+    code=RM.RM(4,2)
+    #measure_main_execution_time_deterministic(code)
     #test_random(code)
+    #code = RM.RM(localr, localm)
+    # measure_main_execution_time_deterministic(code)
+    test_random(code)
 if __name__ == '__main__':
     main()
