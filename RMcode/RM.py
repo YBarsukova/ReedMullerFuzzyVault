@@ -128,7 +128,7 @@ class RM:
         self.n = 2 ** m
         self.k = sum_binomial(m, r)
         self.d = 2 ** (self.m - self.r)
-        self.mistakes_count = self.d / 2 - 1
+        self.mistakes_count = (self.d - 1)//2
         self.erases_count = self.d - 1
         self.matrix_cache = {}
         self.g1 = creation_g1(m)

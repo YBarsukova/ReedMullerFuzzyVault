@@ -1,5 +1,6 @@
 import itertools
 import math
+import random
 
 import numpy as np
 from tqdm import tqdm
@@ -9,7 +10,11 @@ def generate_error_combinations(message_length, num_errors):
 
     positions = range(message_length)
     return list(itertools.combinations(positions, num_errors))
-
+def get_random_combinations(message_length, num_errors, num_samples):
+    all_combinations = generate_error_combinations(message_length, num_errors)
+    return random.sample(all_combinations, min(num_samples, len(all_combinations)))
+def generate_one_random_combination(message_length, num_errors):
+    return tuple(random.sample(range(message_length), num_errors))
 def apply_errors(encoded_message, error_positions):
 
     corrupted_message = encoded_message.copy()
@@ -48,7 +53,18 @@ def run_tests_for_error_counts(code, message):
         successful, unsuccessful = test_error_correction(code, message, num_errors)
         results.append((num_errors, successful, unsuccessful))
         print(f"\n Для {num_errors} ошибок: Успешно исправлено {successful} из {successful + unsuccessful}")
-        if (successful==0):
+        if successful==0:
             break
 
     return results
+def tests_for_a_certain_number_of_errors(code, count):
+    fail_count=0
+    total_count=0
+    while (fail_count<100):
+        total_count+=1
+        message = [random.choice([0,1]) for i in range(RM.sum_binomial(code.m, code.r))]
+        encoded=code.encode(message)
+        emessage=apply_errors(encoded, generate_one_random_combination(code.n, count))
+        if code.decode(emessage)!=message:
+            fail_count+=1
+    return 1-(fail_count/total_count)
