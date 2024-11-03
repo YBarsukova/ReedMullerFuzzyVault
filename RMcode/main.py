@@ -14,7 +14,7 @@ def measure_main_execution_time_deterministic(c):
     message_length = RM.sum_binomial(c.m, c.r)
     message = generate_deterministic_message(42, message_length)
     max_value = 2 ** message_length
-    for repeat in range(1):
+    for repeat in range(100):
         for number in range(100):
             message = generate_deterministic_message(number, message_length)
             emessage = c.encode(message)
@@ -63,7 +63,7 @@ def test_random(code):
 
 def main():
     #measure_main_execution_time
-    code=RM.RM(10,2)
+    code=RM.RM(5,2)
     measure_main_execution_time_deterministic(code)
     #test_random(code)
 if __name__ == '__main__':
