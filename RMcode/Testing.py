@@ -59,7 +59,7 @@ def run_tests_for_error_counts(code, message):
 def tests_for_a_certain_number_of_errors(code, count):
     fail_count=0
     total_count=0
-    while (fail_count<100):
+    while (fail_count<1000):
         total_count+=1
         message = [random.choice([0,1]) for i in range(RM.sum_binomial(code.m, code.r))]
         encoded=code.encode(message)

@@ -7,10 +7,12 @@ def update_excel_with_data(filename, data_lines):
     config = data_lines[0].strip("()").split()
     r, m = int(config[0]), int(config[1])
     column_header = f"Код ({m},{r})"
+
     if os.path.exists(filename):
         workbook = load_workbook(filename)
         sheet = workbook.active
     else:
+
         df_initial = pd.DataFrame(columns=["Ошибки\\Коды", column_header])
         df_initial.loc[0] = ["max", 100]
         df_initial.to_excel(filename, index=False)
@@ -37,7 +39,7 @@ def update_excel_with_data(filename, data_lines):
             row_index = sheet.max_row + 1
             sheet.cell(row=row_index, column=1, value=row_label)
 
-        if sheet.cell(row=row_index, column=col_index).value is None:
-            percentage_value = round(float(value) * 100)
-            sheet.cell(row=row_index, column=col_index, value=percentage_value)
+        percentage_value = round(float(value) * 100)
+        sheet.cell(row=row_index, column=col_index, value=percentage_value)
+
     workbook.save(filename)
