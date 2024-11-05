@@ -3,11 +3,15 @@ import RM
 import Testing
 from RMcode.Testing import tests_for_a_certain_number_of_errors
 import Exel
-
+import FuzzyVault
+import numpy as np
 def generate_deterministic_message(number, length):
     binary_message = list(map(int, bin(number)[2:].zfill(length)))
     return binary_message
-
+def read_set_from_console():
+    input_data = input("Введите элементы множества, разделённые запятой и пробелом: ")
+    number_set = set(map(int, input_data.split(', ')))
+    return number_set
 
 def measure_main_execution_time_deterministic(c):
     start_time = time.time()
@@ -71,9 +75,16 @@ def main():
     #test_random(code)
     #code = RM.RM(localr, localm)
     # measure_main_execution_time_deterministic(code)
-    common_codes=[RM.RM(3,1),RM.RM(4,1),RM.RM(4,2),RM.RM(5,1),RM.RM(5,2),RM.RM(5,3),RM.RM(6,1),RM.RM(6,2),RM.RM(6,3)]#,RM.RM(8,2),RM.RM(8,3)]#,RM.RM(10,1),RM.RM(10,2),RM.RM(10,4)]
-    for code in common_codes:
-        test_random(code)
-        print(f"Закончили вычисления вероятности для кода ({code.m}, {code.r})")
+    # common_codes=[RM.RM(3,1),RM.RM(4,1),RM.RM(4,2),RM.RM(5,1),RM.RM(5,2),RM.RM(5,3),RM.RM(6,1),RM.RM(6,2),RM.RM(6,3)]#,RM.RM(8,2),RM.RM(8,3)]#,RM.RM(10,1),RM.RM(10,2),RM.RM(10,4)]
+    # for code in common_codes:
+    #     test_random(code)
+    #     print(f"Закончили вычисления вероятности для кода ({code.m}, {code.r})")
+    V=FuzzyVault.Vault(4,2)
+    message_length = RM.sum_binomial(4,2)
+    V.lock(generate_deterministic_message(1, message_length))
+    while True:
+        sec=read_set_from_console()
+        V.unlock(sec)
+    #V.unlock([])
 if __name__ == '__main__':
     main()
