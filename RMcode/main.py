@@ -79,8 +79,8 @@ def main():
     # for code in common_codes:
     #     test_random(code)
     #     print(f"Закончили вычисления вероятности для кода ({code.m}, {code.r})")
-    V=FuzzyVault.Vault(4,2)
-    message_length = RM.sum_binomial(4,2)
+    V=FuzzyVault.Vault(4,1)
+    message_length = RM.sum_binomial(4,1)
     V.lock(generate_deterministic_message(1, message_length))
     while True:
         sec=read_set_from_console()

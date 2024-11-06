@@ -1,3 +1,5 @@
+from copy import copy
+
 import RM
 import random
 
@@ -14,12 +16,10 @@ def missing_numbers_in_range(min_value, max_value, us_set):
     missing_numbers = full_set - us_set
     return missing_numbers
 
-
-
 class Vault:
     def __init__(self,m,r):
         self.code=RM.RM(m,r)
-        self.attempts_count=10
+        self.attempts_count=3
 
     def filling_trash(self, enc, count):
         rs=random_set(count, 0,  self.code.n-1)
@@ -36,12 +36,13 @@ class Vault:
     def lock(self, data_input):
         self.secret=data_input
         enc=self.code.encode(data_input)
-        self.vault=self.filling_trash(enc, self.code.erases_count-1)
-        print(f"{self.kee} - yours password")
+        self.vault=self.filling_trash(enc, self.code.erases_count-2)
+        print(f"{self.kee} - yours password \n")
 
     def unlock(self, ints):
+        print("va ",self.vault )
         if self.attempts_count>0:
-            attempt=self.filling_erases(self.vault, ints)
+            attempt=self.filling_erases(copy(self.vault), ints)
             dec=self.code.decode(attempt)
             if (dec==self.secret):
                 print("Unlocked!!!")
