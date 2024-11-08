@@ -1,7 +1,8 @@
 import time
 import RM
 import Testing
-from RMcode.Testing import tests_for_a_certain_number_of_errors
+from RMcode.RM import sum_binomial
+from RMcode.Testing import tests_for_a_certain_number_of_errors, tests_for_a_certain_number_of_errors_parallel
 import Exel
 import FuzzyVault
 import numpy as np
@@ -58,14 +59,18 @@ def measure_main_execution_time():
     execution_time = end_time - start_time
     print(f"Execution time: {execution_time:.4f} seconds")
 def test_random(code):
+    start_time = time.time()
     prev = 1
     i=code.mistakes_count+1
     statistics = ["(" + str(code.r) + " " + str(code.m) + ")"]
     while prev > 0:
-        prev=tests_for_a_certain_number_of_errors(code, i)
+        prev= Testing.tests_for_a_certain_number_of_errors_parallel2(code, i)
         #print(i,prev)
         i+=1
         statistics.append(str(i)+" "+str(prev))
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time:.4f} seconds")
     Exel.update_excel_with_data("test_data.xlsx", statistics)
 
 def main():
@@ -75,16 +80,16 @@ def main():
     #test_random(code)
     #code = RM.RM(localr, localm)
     # measure_main_execution_time_deterministic(code)
-    # common_codes=[RM.RM(3,1),RM.RM(4,1),RM.RM(4,2),RM.RM(5,1),RM.RM(5,2),RM.RM(5,3),RM.RM(6,1),RM.RM(6,2),RM.RM(6,3)]#,RM.RM(8,2),RM.RM(8,3)]#,RM.RM(10,1),RM.RM(10,2),RM.RM(10,4)]
-    # for code in common_codes:
-    #     test_random(code)
-    #     print(f"Закончили вычисления вероятности для кода ({code.m}, {code.r})")
-    V=FuzzyVault.Vault(4,1)
-    message_length = RM.sum_binomial(4,1)
-    V.lock(generate_deterministic_message(1, message_length))
-    while True:
-        sec=read_set_from_console()
-        V.unlock(sec)
+    common_codes=[RM.RM(3,1),RM.RM(4,1),RM.RM(4,2),RM.RM(5,1),RM.RM(5,2),RM.RM(5,3),RM.RM(6,1),RM.RM(6,2),RM.RM(6,3), RM.RM(7,1), RM.RM(7,2),RM.RM(7,3)]#,RM.RM(8,2),RM.RM(8,3)]#,RM.RM(10,1),RM.RM(10,2),RM.RM(10,4)]
+    for code in common_codes:
+        test_random(code)
+        print(f"Закончили вычисления вероятности для кода ({code.m}, {code.r})")
+    # V=FuzzyVault.Vault(4,1)
+    # message_length = RM.sum_binomial(4,1)
+    # V.lock(generate_deterministic_message(1, message_length))
+    # while True:
+    #     sec=read_set_from_console()
+    #     V.unlock(sec)
     #V.unlock([])
 if __name__ == '__main__':
     main()
