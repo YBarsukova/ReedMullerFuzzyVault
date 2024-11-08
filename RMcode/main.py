@@ -80,7 +80,7 @@ def main():
     #test_random(code)
     #code = RM.RM(localr, localm)
     # measure_main_execution_time_deterministic(code)
-    common_codes=[RM.RM(3,1),RM.RM(4,1),RM.RM(4,2),RM.RM(5,1),RM.RM(5,2),RM.RM(5,3),RM.RM(6,1),RM.RM(6,2),RM.RM(6,3), RM.RM(7,1), RM.RM(7,2),RM.RM(7,3)]#,RM.RM(8,2),RM.RM(8,3)]#,RM.RM(10,1),RM.RM(10,2),RM.RM(10,4)]
+    common_codes=[RM.RM(3,1),RM.RM(4,1),RM.RM(4,2),RM.RM(5,1),RM.RM(5,2),RM.RM(5,3),RM.RM(6,1),RM.RM(6,2),RM.RM(6,3), RM.RM(7,1), RM.RM(7,2),RM.RM(7,3), RM.RM(8,2),RM.RM(8,3)]#,RM.RM(10,1),RM.RM(10,2),RM.RM(10,4)]
     for code in common_codes:
         test_random(code)
         print(f"Закончили вычисления вероятности для кода ({code.m}, {code.r})")
