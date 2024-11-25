@@ -1,11 +1,8 @@
 import time
 import RM
 import Testing
-from RMcode.RM import sum_binomial
-from RMcode.Testing import tests_for_a_certain_number_of_errors, tests_for_a_certain_number_of_errors_parallel
 import Exel
-import FuzzyVault
-import numpy as np
+#from RMcode import FuzzyVault
 def generate_deterministic_message(number, length):
     binary_message = list(map(int, bin(number)[2:].zfill(length)))
     return binary_message
@@ -72,17 +69,30 @@ def test_random(code):
     execution_time = end_time - start_time
     print(f"Execution time: {execution_time:.4f} seconds")
     Exel.update_excel_with_data("test_data.xlsx", statistics)
-
+def test_random2(code):
+    start_time = time.time()
+    prev = 1
+    i=code.mistakes_count+1
+    statistics = ["(" + str(code.r) + " " + str(code.m) + ")"]
+    while prev > 0:
+        prev= Testing.tests_for_a_certain_number_of_errors_parallel2_with_added_break(code, i)
+        #print(i,prev)
+        i+=1
+        statistics.append(str(i)+" "+str(prev))
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time:.4f} seconds")
+    Exel.update_excel_with_data("test_data.xlsx", statistics)
 def main():
     #measure_main_execution_time
-    #code=RM.RM(4,2)
-    #measure_main_execution_time_deterministic(code)
+    # code=RM.RM(6,2)
+    # measure_main_execution_time_deterministic(code)
     #test_random(code)
     #code = RM.RM(localr, localm)
     # measure_main_execution_time_deterministic(code)
-    common_codes=[RM.RM(3,1),RM.RM(4,1),RM.RM(4,2),RM.RM(5,1),RM.RM(5,2),RM.RM(5,3),RM.RM(6,1),RM.RM(6,2),RM.RM(6,3), RM.RM(7,1), RM.RM(7,2),RM.RM(7,3), RM.RM(8,2),RM.RM(8,3)]#,RM.RM(10,1),RM.RM(10,2),RM.RM(10,4)]
+    common_codes=[RM.RM(10,1),RM.RM(10,2), RM.RM(10,3)]
     for code in common_codes:
-        test_random(code)
+        test_random2(code)
         print(f"Закончили вычисления вероятности для кода ({code.m}, {code.r})")
     # V=FuzzyVault.Vault(4,1)
     # message_length = RM.sum_binomial(4,1)
@@ -90,6 +100,6 @@ def main():
     # while True:
     #     sec=read_set_from_console()
     #     V.unlock(sec)
-    #V.unlock([])
+    # V.unlock([])
 if __name__ == '__main__':
     main()

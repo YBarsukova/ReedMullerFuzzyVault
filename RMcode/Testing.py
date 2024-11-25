@@ -7,7 +7,6 @@ from tqdm import tqdm
 import RM
 from concurrent.futures import ProcessPoolExecutor
 def generate_error_combinations(message_length, num_errors):
-
     positions = range(message_length)
     return list(itertools.combinations(positions, num_errors))
 def get_random_combinations(message_length, num_errors, num_samples):
@@ -81,8 +80,19 @@ def worker(code, count, fail_limit):
         if code.decode(emessage) != message:
             fail_count += 1
     return total_count
-
-
+def worker2(code, count, fail_limit, total_limit):
+    fail_count = 0
+    total_count = 0
+    for i in range(total_limit):
+        total_count += 1
+        message = [random.choice([0, 1]) for _ in range(RM.sum_binomial(code.m, code.r))]
+        encoded = code.encode(message)
+        emessage = apply_errors(encoded, generate_one_random_combination(code.n, count))
+        if code.decode(emessage) != message:
+            fail_count += 1
+        if fail_count>=fail_limit:
+            break
+    return (total_count, fail_count)
 def tests_for_a_certain_number_of_errors_parallel(code, count, num_processes=4):
     fail_limit_per_process = 1000 // num_processes
     with multiprocessing.Pool(processes=num_processes) as pool:
@@ -90,18 +100,28 @@ def tests_for_a_certain_number_of_errors_parallel(code, count, num_processes=4):
     total_count = sum(results)
     return 1 - (1000/ total_count)
 
-
-
-
-def tests_for_a_certain_number_of_errors_parallel2(code, count, num_processes=18):
-    fail_limit_per_process = 1008 // num_processes
+def tests_for_a_certain_number_of_errors_parallel2(code, count, num_processes=4):
+    fail_limit_per_process = 1024 // num_processes
     with ProcessPoolExecutor(max_workers=num_processes) as executor:
         futures = [executor.submit(worker, code, count, fail_limit_per_process) for _ in range(num_processes)]
         results = [future.result() for future in futures]
 
     total_count = sum(results)
-    fail_count = 1008  # Общее количество отказов
-    res=1 - (1008/ total_count)
+    res=1 - (1024/ total_count)
+    if res<0:
+        print(total_count)
+    return res
+def tests_for_a_certain_number_of_errors_parallel2_with_added_break(code, count, num_processes=4):
+    fail_limit_per_process = 1024 // num_processes
+    with ProcessPoolExecutor(max_workers=num_processes) as executor:
+        futures = [executor.submit(worker2, code, count, fail_limit_per_process, 10**5) for _ in range(num_processes)]
+        results = [future.result() for future in futures]
+    total_count=0
+    failed_count=0
+    for elem  in results:
+        total_count+=elem[0]
+        failed_count+=elem[1]
+    res=1 - (failed_count/ total_count)
     if res<0:
         print(total_count)
     return res

@@ -46,6 +46,18 @@ def create_string(a_list, b_list, a_coordinates):
 
     return ''.join(result)
 
+import numpy as np
+
+def create_array(a_array, b_array, a_coordinates):
+    result = np.empty(len(a_array) + len(b_array), dtype=int)
+    result.fill(-1)
+    result[a_coordinates] = a_array
+    b_index = 0
+    for i in range(len(result)):
+        if result[i] == -1:
+            result[i] = b_array[b_index]
+            b_index += 1
+    return result
 
 @lru_cache(None)
 def get_multipliers(num_multipliers, num_x, idx):
