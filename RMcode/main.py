@@ -2,7 +2,7 @@ import time
 import RM
 import Testing
 import Exel
-#from RMcode import FuzzyVault
+from RMcode import FuzzyVault
 def generate_deterministic_message(number, length):
     binary_message = list(map(int, bin(number)[2:].zfill(length)))
     return binary_message
@@ -90,16 +90,16 @@ def main():
     #test_random(code)
     #code = RM.RM(localr, localm)
     # measure_main_execution_time_deterministic(code)
-    common_codes=[RM.RM(10,1),RM.RM(10,2), RM.RM(10,3)]
-    for code in common_codes:
-        test_random2(code)
-        print(f"Закончили вычисления вероятности для кода ({code.m}, {code.r})")
-    # V=FuzzyVault.Vault(4,1)
-    # message_length = RM.sum_binomial(4,1)
-    # V.lock(generate_deterministic_message(1, message_length))
-    # while True:
-    #     sec=read_set_from_console()
-    #     V.unlock(sec)
-    # V.unlock([])
+    # common_codes=[RM.RM(10,1),RM.RM(10,2), RM.RM(10,3)]
+    # for code in common_codes:
+    #     test_random2(code)
+    #     print(f"Закончили вычисления вероятности для кода ({code.m}, {code.r})")
+    V=FuzzyVault.Vault(5,2)
+    message_length = RM.sum_binomial(5,2)
+    V.lock(generate_deterministic_message(1, message_length))
+    while True:
+        sec=read_set_from_console()
+        V.unlock(sec)
+    V.unlock([])
 if __name__ == '__main__':
     main()
