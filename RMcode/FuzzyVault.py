@@ -56,14 +56,13 @@ class Vault:
         self.secret=data_input
         enc=self.code.encode(data_input)
         self.vault=self.filling_trash(enc, self.code.erases_count-2)
-        print(f"{self.kee} - yours password \n")
+        #print(f"{self.kee} - yours password \n")
+        return self.kee
 
     def unlock(self, ints):
         if self.attempts_count>0:
             attempt=self.filling_erases(copy(self.vault), ints)
-            #dec=self.code.decode(attempt)
             dec=list(self.splited_unlock(attempt))
-            # print(dec, dec1)
             if (dec==self.secret):
                 print("Unlocked!!!")
             else:
@@ -73,6 +72,13 @@ class Vault:
         else:
             print("There is no attempts")
 
+    def infinite_unlock(self, ints):
+        attempt=self.filling_erases(copy(self.vault), ints)
+        dec=list(self.splited_unlock(attempt))
+        if (dec==self.secret):
+            return True
+        else:
+            return False
     def splited_unlock(self, y):
         n = len(y)
         mid = n // 2

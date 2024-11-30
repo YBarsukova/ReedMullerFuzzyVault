@@ -125,3 +125,28 @@ def tests_for_a_certain_number_of_errors_parallel2_with_added_break(code, count,
     if res<0:
         print(total_count)
     return res
+def generate_one_random_combination(message_length, num_errors):
+    return tuple(random.sample(range(message_length), num_errors))
+def remove_coordinates(sequence, num_coords):
+    if num_coords > len(sequence):
+        raise ValueError("Количество координат для удаления превышает длину последовательности.")
+    indices_to_remove = random.sample(range(len(sequence)), num_coords)
+    updated_sequence = [x for i, x in enumerate(sequence) if i not in indices_to_remove]
+    return updated_sequence
+def test_splited_unlock_for_error_count(vault, num_errors, fail_limit=1000):
+    fail_count = 0
+    total_count = 0
+    while fail_count < fail_limit:
+        total_count += 1
+        message = list(map(int, bin(random.randint(0, vault.code.n))[2:].zfill(vault.code.k)))
+        secret=vault.lock(message)
+        if num_errors * 2 > len(secret):
+            print(f"Количество ошибок {num_errors * 2} превышает длину секрета {len(secret)}.")
+            return 0
+        corrupted_message = remove_coordinates(secret, num_errors*2)
+        success = vault.infinite_unlock(set(corrupted_message))
+        if not success:
+            fail_count += 1
+    success_rate = 1-(fail_count/ total_count)
+    print(f"Success rate for {num_errors} errors: {success_rate}")
+    return success_rate

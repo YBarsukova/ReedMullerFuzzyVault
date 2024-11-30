@@ -12,7 +12,6 @@ def update_excel_with_data(filename, data_lines):
         workbook = load_workbook(filename)
         sheet = workbook.active
     else:
-
         df_initial = pd.DataFrame(columns=["Ошибки\\Коды", column_header])
         df_initial.loc[0] = ["max", 100]
         df_initial.to_excel(filename, index=False)

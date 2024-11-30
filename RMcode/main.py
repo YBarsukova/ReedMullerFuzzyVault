@@ -3,6 +3,10 @@ import RM
 import Testing
 import Exel
 from RMcode import FuzzyVault
+from RMcode.FuzzyVault import Vault
+from RMcode.Testing import test_splited_unlock_for_error_count
+
+
 def generate_deterministic_message(number, length):
     binary_message = list(map(int, bin(number)[2:].zfill(length)))
     return binary_message
@@ -10,7 +14,19 @@ def read_set_from_console():
     input_data = input("Введите элементы множества, разделённые запятой и пробелом: ")
     number_set = set(map(int, input_data.split(', ')))
     return number_set
-
+def vault_tests(vault):
+    start_time = time.time()
+    prev = 1
+    i = vault.code.mistakes_count + 1
+    statistics = ["(" + str(vault.code.r) + " " + str(vault.code.m) + ")"]
+    while prev > 0:
+        prev = Testing.test_splited_unlock_for_error_count(vault, i)
+        i += 1
+        statistics.append(str(i) + " " + str(prev))
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time:.4f} seconds")
+    Exel.update_excel_with_data("test_data_splited.xlsx", statistics)
 def measure_main_execution_time_deterministic(c):
     start_time = time.time()
     message_length = RM.sum_binomial(c.m, c.r)
@@ -94,12 +110,17 @@ def main():
     # for code in common_codes:
     #     test_random2(code)
     #     print(f"Закончили вычисления вероятности для кода ({code.m}, {code.r})")
-    V=FuzzyVault.Vault(5,3)
-    message_length = RM.sum_binomial(5,3)
-    V.lock(generate_deterministic_message(1, message_length))
-    while True:
-        sec=read_set_from_console()
-        V.unlock(sec)
-    V.unlock([])
+    V=FuzzyVault.Vault(4,2)
+    vault_tests(V)
+    common_vaults=[FuzzyVault.Vault(5,2),FuzzyVault.Vault(5,3), FuzzyVault.Vault(6,2),FuzzyVault.Vault(6,3), FuzzyVault.Vault(7,2),FuzzyVault.Vault(7,3)]
+    for code in common_vaults:
+        vault_tests(code)
+        print(f"Закончили вычисления вероятности для кода ({code.code.m}, {code.code.r})")
+    # message_length = RM.sum_binomial(4,2)
+    # V.lock(generate_deterministic_message(1, message_length))
+    # while True:
+    #     sec=read_set_from_console()
+    #     V.unlock(sec)
+    # V.unlock([])
 if __name__ == '__main__':
     main()
