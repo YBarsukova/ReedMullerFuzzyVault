@@ -204,13 +204,18 @@ class RM:
 
     def decode(self, emess):
         if np.count_nonzero(emess == 3) > 0:
+            diff_count = lambda a: sum(x != y for x, y in zip(emess, a))
             ones = replace_elements(emess.copy(), 3, 1)
-            zeros = replace_elements(emess.copy(), 3, 0)
             o = self.decode_without_erasures(ones)
             o_var = self.encode(o)
+            diff_ones = diff_count(o_var)
+            if diff_ones == 0:
+                return o
+            zeros = replace_elements(emess.copy(), 3, 0)
             z = self.decode_without_erasures(zeros)
             z_var = self.encode(z)
-            diff_count = lambda a: sum(x != y for x, y in zip(emess, a))
-            return o if diff_count(o_var) <= diff_count(z_var) else z
+            diff_zeros = diff_count(z_var)
+            return o if diff_ones <= diff_zeros else z
         else:
             return self.decode_without_erasures(emess)
+
