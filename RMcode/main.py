@@ -2,6 +2,7 @@ import time
 import RM
 import Testing
 import Exel
+import RMCore
 from RMcode import FuzzyVault
 from RMcode.FuzzyVault import Vault
 from RMcode.Testing import test_splited_unlock_for_error_count
@@ -110,17 +111,18 @@ def main():
     # for code in common_codes:
     #     test_random2(code)
     #     print(f"Закончили вычисления вероятности для кода ({code.m}, {code.r})")
-    V=FuzzyVault.Vault(4,2)
-    vault_tests(V)
-    common_vaults=[FuzzyVault.Vault(5,2),FuzzyVault.Vault(5,3), FuzzyVault.Vault(6,2),FuzzyVault.Vault(6,3), FuzzyVault.Vault(7,2),FuzzyVault.Vault(7,3)]
-    for code in common_vaults:
-        vault_tests(code)
-        print(f"Закончили вычисления вероятности для кода ({code.code.m}, {code.code.r})")
+    # V=FuzzyVault.Vault(4,2)
+    # vault_tests(V)
+    # common_vaults=[FuzzyVault.Vault(5,2),FuzzyVault.Vault(5,3), FuzzyVault.Vault(6,2),FuzzyVault.Vault(6,3), FuzzyVault.Vault(7,2),FuzzyVault.Vault(7,3)]
+    # for code in common_vaults:
+    #     vault_tests(code)
+    #     print(f"Закончили вычисления вероятности для кода ({code.code.m}, {code.code.r})")
     # message_length = RM.sum_binomial(4,2)
     # V.lock(generate_deterministic_message(1, message_length))
     # while True:
     #     sec=read_set_from_console()
     #     V.unlock(sec)
     # V.unlock([])
+    print(RMCore.generate_bitword_map(5))
 if __name__ == '__main__':
     main()
