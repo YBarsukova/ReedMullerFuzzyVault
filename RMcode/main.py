@@ -5,7 +5,12 @@ import Exel
 import RMCore
 from RMcode import FuzzyVault
 from RMcode.FuzzyVault import Vault
-from RMcode.Testing import test_splited_unlock_for_error_count
+from RMcode.Testing import test_splited_unlock_for_error_count, test_decode_recursed_splited
+def print_map(map_data):
+    for key, value in map_data.items():
+        key_str = ''.join(map(str, key))
+        value_str = ''.join(map(str, value))
+        print(f"Key: {key_str}, Value: {value_str}")
 
 
 def generate_deterministic_message(number, length):
@@ -18,7 +23,7 @@ def read_set_from_console():
 def vault_tests(vault):
     start_time = time.time()
     prev = 1
-    i = vault.code.mistakes_count + 1
+    i = 1
     statistics = ["(" + str(vault.code.r) + " " + str(vault.code.m) + ")"]
     while prev > 0:
         prev = Testing.test_splited_unlock_for_error_count(vault, i)
@@ -111,7 +116,7 @@ def main():
     # for code in common_codes:
     #     test_random2(code)
     #     print(f"Закончили вычисления вероятности для кода ({code.m}, {code.r})")
-    # V=FuzzyVault.Vault(4,2)
+    # V=FuzzyVault.Vault(6,2)
     # vault_tests(V)
     # common_vaults=[FuzzyVault.Vault(5,2),FuzzyVault.Vault(5,3), FuzzyVault.Vault(6,2),FuzzyVault.Vault(6,3), FuzzyVault.Vault(7,2),FuzzyVault.Vault(7,3)]
     # for code in common_vaults:
@@ -123,6 +128,7 @@ def main():
     #     sec=read_set_from_console()
     #     V.unlock(sec)
     # V.unlock([])
-    print(RMCore.generate_bitword_map(5))
+    Core=RMCore.RMCore(4,2)
+    test_decode_recursed_splited(Core, 1)
 if __name__ == '__main__':
     main()

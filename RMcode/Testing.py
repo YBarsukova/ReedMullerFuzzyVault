@@ -2,10 +2,16 @@ import itertools
 import math
 import multiprocessing
 import random
+from random import randint
 import numpy as np
 from tqdm import tqdm
 import RM
+import RMCore
 from concurrent.futures import ProcessPoolExecutor
+
+from RMcode.RM import sum_binomial
+
+
 def generate_error_combinations(message_length, num_errors):
     positions = range(message_length)
     return list(itertools.combinations(positions, num_errors))
@@ -150,3 +156,15 @@ def test_splited_unlock_for_error_count(vault, num_errors, fail_limit=1000):
     success_rate = 1-(fail_count/ total_count)
     print(f"Success rate for {num_errors} errors: {success_rate}")
     return success_rate
+
+
+def test_decode_recursed_splited(rm_core, num_tests):
+    m = rm_core.code.m
+    n = 2 ** m
+    for i in range(num_tests):
+        message = [random.choice([0, 1]) for _ in range(sum_binomial(rm_core.code.m, rm_core.code.r))]
+        encoded_message = rm_core.encode(message)
+        decoded_message = rm_core.decode_classic_splited(encoded_message)
+        print(message,decoded_message)
+
+
