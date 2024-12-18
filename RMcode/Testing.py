@@ -164,7 +164,14 @@ def test_decode_recursed_splited(rm_core, num_tests):
     for i in range(num_tests):
         message = [random.choice([0, 1]) for _ in range(sum_binomial(rm_core.code.m, rm_core.code.r))]
         encoded_message = rm_core.encode(message)
-        decoded_message = rm_core.decode_classic_splited(encoded_message)
-        print(message,decoded_message)
+        decoded_message = rm_core.decode_recursed_splited(encoded_message)
+        print(f'm: {message},\n \n {decoded_message}')
 
-
+def test_decode_2(rm_core, num_tests):
+    m = rm_core.code.m
+    n = 2 ** m
+    for i in range(num_tests):
+        message = [random.choice([0, 1]) for _ in range(sum_binomial(rm_core.code.m, rm_core.code.r))]
+        encoded_message = rm_core.encode(message)
+        decoded_message = rm_core.final_version_decode(encoded_message, m, rm_core.code.r)
+        print(f'm: {message},\n, \n {decoded_message}')

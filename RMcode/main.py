@@ -5,7 +5,9 @@ import Exel
 import RMCore
 from RMcode import FuzzyVault
 from RMcode.FuzzyVault import Vault
-from RMcode.Testing import test_splited_unlock_for_error_count, test_decode_recursed_splited
+from RMcode.Testing import test_splited_unlock_for_error_count, test_decode_recursed_splited, test_decode_2
+
+
 def print_map(map_data):
     for key, value in map_data.items():
         key_str = ''.join(map(str, key))
@@ -128,7 +130,11 @@ def main():
     #     sec=read_set_from_console()
     #     V.unlock(sec)
     # V.unlock([])
-    Core=RMCore.RMCore(4,2)
-    test_decode_recursed_splited(Core, 1)
+
+    Core=RMCore.RMCore(10,2)
+    ##print(Core.decode_first_degree([0, 1, 0, 0]))
+    ##print(Core.real_decode_first_degree([0,1,0,0,1,1,1,1]))
+    ##test_decode_recursed_splited(Core, 10)
+    test_decode_2(Core, 1)
 if __name__ == '__main__':
     main()

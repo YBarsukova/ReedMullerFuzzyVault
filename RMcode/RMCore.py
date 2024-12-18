@@ -1,6 +1,12 @@
+import math
+
 import numpy as np
 from itertools import product
 from Levenshtein import distance as levenshtein_distance
+from numba import typeof
+from numba.cuda.printimpl import print_item
+from numpy.f2py.cfuncs import typedefs
+
 import RM
 from RMcode.RM import sum_binomial
 
@@ -66,21 +72,17 @@ class RMCore():
         return decoded_message
 
     def decode_recursed_splited(self, y):
-
         assert self.code.r == 2
         n = len(y)
         mid = n // 2
         y_L = y[:mid]
         y_R = y[mid:]
         s = np.bitwise_xor(y_L, y_R)
-        # decode_map = self.data[self.code.m - 1]
-        # v_hat = self.decode_using_map(s, decode_map)
-        # v_hat_codeword = decode_map[tuple(v_hat)]
-        c1 = RM.RM(self.code.m - 1, self.code.r - 1)
-        v_hat = c1.decode(s)
-        v_hat_codeword = c1.encode(v_hat)
-        c2 = RM.RM(self.code.m - 1, self.code.r)
-        y_L_corrected1 = np.bitwise_xor(y_L, v_hat_codeword)
+        decode_map = self.data[self.code.m - 1]
+        v_hat = self.decode_using_map(s, decode_map)
+        print(typeof(tuple(v_hat)))
+        v_hat_codeword = decode_map[tuple(v_hat)]
+        y_L_corrected1 = np.bitwise_xor(y_R, v_hat_codeword)
         y_L_corrected2 = y_L.copy()
         c2 = RM.RM(self.code.m - 1, self.code.r)
         u_hat1 = c2.decode(y_L_corrected1)
@@ -96,10 +98,18 @@ class RMCore():
         diff1 = np.sum(y != codeword1)
         diff2 = np.sum(y != codeword2)
         if diff1 <= diff2:
-            decoded_message = combine_messages(u_hat1, v_hat)
+            return self.code.decode(codeword1)
+            #decoded_message = combine_messages(u_hat1, v_hat)
         else:
-            decoded_message = combine_messages(u_hat2, v_hat)
-        return decoded_message
+            return self.code.decode(codeword2)
+
+    def real_decode_first_degree(self, message):
+        array = self.decode_first_degree(message)
+        max_index = max(range(len(array)), key=lambda i: abs(array[i]))
+        sign = 0 if array[max_index] >= 0 else 1
+        binary_index = list(map(int, bin(max_index)[2:].zfill(int(math.log(len(message),2)))))
+        result = np.array([sign] + binary_index)
+        return result
 
     def map_creation(self, m):
         code = RM.RM(m, 1)
@@ -117,8 +127,57 @@ class RMCore():
         for key in decode_map.keys():
             key_str = ''.join(map(str, decode_map[key]))
             distance = levenshtein_distance1(bits_str, key_str)
+            print(bits, key_str, distance)
             if distance < min_dis:
                 min_dis = distance
                 cur_key = key
         return cur_key
+    def final_version_decode(self, y, m,r):
+        assert self.code.r == 2
+        n = len(y)
+        mid = n // 2
+        y_L = y[:mid]
+        y_R = y[mid:]
+        s = np.bitwise_xor(y_L, y_R)
+        v_hat = self.real_decode_first_degree(s)
+        v_hat_codeword = RM.RM(m-1, r-1).encode(v_hat)
+        y_L_corrected1 = np.bitwise_xor(y_R, v_hat_codeword)
+        y_L_corrected2 = y_L.copy()
+
+        c2 = RM.RM(m-1, r)
+        if (m>4):
+            u_hat1=self.final_version_decode(y_L_corrected1, m-1,r)
+            u_hat2=self.final_version_decode(y_L_corrected2, m-1,r)
+        else:
+            u_hat1 = c2.decode(y_L_corrected1)
+            u_hat2 = c2.decode(y_L_corrected2)
+        u_hat_codeword1 = c2.encode(u_hat1)
+        u_hat_codeword2 = c2.encode(u_hat2)
+        codeword1_left = u_hat_codeword1
+        codeword1_right = np.bitwise_xor(u_hat_codeword1, v_hat_codeword)
+        codeword1 = np.concatenate((codeword1_left, codeword1_right))
+        codeword2_left = u_hat_codeword2
+        codeword2_right = np.bitwise_xor(u_hat_codeword2, v_hat_codeword)
+        codeword2 = np.concatenate((codeword2_left, codeword2_right))
+        diff1 = np.sum(y != codeword1)
+        diff2 = np.sum(y != codeword2)
+        cur_code=RM.RM(m,r)
+        if diff1 <= diff2:
+            return cur_code.decode(codeword1)
+        else:
+            return cur_code.decode(codeword2)
+    def decode_first_degree(self, array):
+        array = [-1 if x == 1 else 1 if x == 0 else x for x in array]
+        iterations=int(math.log(len(array),2))
+        n = len(array)
+        for it in range(iterations):
+            step = 2 ** it
+            new_array = array[:]
+            for i in range(0, n, 2 * step):
+                for j in range(step):
+                    new_array[i + j] = array[i + j] + array[i + j + step]
+                    new_array[i + j + step] = array[i + j] - array[i + j + step]
+            array = new_array
+        return array
+
 
