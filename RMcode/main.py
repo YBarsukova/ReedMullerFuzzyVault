@@ -1,4 +1,7 @@
 import time
+
+from numba import typeof
+
 import RM
 import Testing
 import Exel
@@ -107,6 +110,20 @@ def test_random2(code):
     execution_time = end_time - start_time
     print(f"Execution time: {execution_time:.4f} seconds")
     Exel.update_excel_with_data("test_data.xlsx", statistics)
+def test_random_rm_core(core):
+    start_time = time.time()
+    prev = 1
+    i=core.code.mistakes_count+1
+    statistics = ["(" + str(core.code.r) + " " + str(core.code.m) + ")"]
+    while prev > 0:
+        prev= Testing.tests_rm_core(core, i)
+        #print(i,prev)
+        i+=1
+        statistics.append(str(i)+" "+str(prev))
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time:.4f} seconds")
+    Exel.update_excel_with_data("test_recursed.xlsx", statistics)
 def main():
     #measure_main_execution_time
     # code=RM.RM(6,2)
@@ -130,11 +147,9 @@ def main():
     #     sec=read_set_from_console()
     #     V.unlock(sec)
     # V.unlock([])
-
-    Core=RMCore.RMCore(10,2)
-    ##print(Core.decode_first_degree([0, 1, 0, 0]))
-    ##print(Core.real_decode_first_degree([0,1,0,0,1,1,1,1]))
-    ##test_decode_recursed_splited(Core, 10)
-    test_decode_2(Core, 1)
+    common_cores=[RMCore.RMCore(4,2),RMCore.RMCore(5,2),RMCore.RMCore(6,2),RMCore.RMCore(7,2),RMCore.RMCore(8,2),RMCore.RMCore(9,2)]
+    for core in common_cores:
+        test_random_rm_core(core)
+        print(f"Закончили вычисления вероятности для кода ({core.code.m}, {core.code.r})")
 if __name__ == '__main__':
     main()
