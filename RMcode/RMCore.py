@@ -139,7 +139,9 @@ class RMCore():
         if (m, r) not in self.codes:
             self.codes[(m, r)] = RM.RM(m,r)
         return self.codes[(m, r)]
-    def final_version_decode(self, y, m,r):
+    def real_final_version_decode(self, message, depth):
+        return self.final_version_decode(message, self.code.m, self.code.r, depth)
+    def final_version_decode(self, y, m,r, depth):
 
         assert self.code.r == 2
         n = len(y)
@@ -153,9 +155,9 @@ class RMCore():
         y_L_corrected2 = y_L.copy()
 
         c2 = self.get_code(m-1, r)
-        if (m>4):
-            u_hat1=self.final_version_decode(y_L_corrected1, m-1,r)
-            u_hat2=self.final_version_decode(y_L_corrected2, m-1,r)
+        if (m>4 and depth>0):
+            u_hat1=self.final_version_decode(y_L_corrected1, m-1,r, depth-1)
+            u_hat2=self.final_version_decode(y_L_corrected2, m-1,r, depth-1)
         else:
             u_hat1 = c2.decode(y_L_corrected1)
             u_hat2 = c2.decode(y_L_corrected2)

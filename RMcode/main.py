@@ -117,7 +117,7 @@ def measure_main_execution_time_for_core():
             emessage[2] = emessage[2] ^ 1
             for j in range(0,2):
                 emessage[j] = 3
-            d = core.final_version_decode(emessage, core.code.m, core.code.r)
+            d = core.real_final_version_decode(emessage, 3)
             if (message!=d):
                 count+=1
             #assert message == d, f"Decoded message does not match the original message for input {message}."
@@ -167,6 +167,23 @@ def test_random_rm_core(core):
     execution_time = end_time - start_time
     print(f"Execution time: {execution_time:.4f} seconds")
     Exel.update_excel_with_data("test_recursed.xlsx", statistics)
+def test_random_rm_core_starts_in_the_end(core):
+    start_time = time.time()
+    statistics = ["(" + str(core.code.r) + " " + str(core.code.m) + ")"]
+    max_errors = core.code.n //2
+    for i in range(max_errors, 0, -1):  # Тестирование с конца
+        res = Testing.tests_rm_core(core, i)
+        statistics.append(str(i)+" "+str(res))
+        if res == 1.0:
+            for j in range(i - 1, 0, -1):
+                statistics.append(f"{j} 1.0")
+            break
+
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time:.4f} seconds")
+    Exel.update_excel_with_data("test_recursed.xlsx", statistics)
+
 def main():
     #measure_main_execution_time
     # code=RM.RM(6,2)
@@ -190,13 +207,13 @@ def main():
     #     sec=read_set_from_console()
     #     V.unlock(sec)
     # V.unlock([])
-    # common_cores=[RMCore.RMCore(4,2),RMCore.RMCore(5,2),RMCore.RMCore(6,2),RMCore.RMCore(7,2),RMCore.RMCore(8,2),RMCore.RMCore(9,2),RMCore.RMCore(10,2)]
-    # for core in common_cores:
-    #     test_random_rm_core(core)
-    #     print(f"Закончили вычисления вероятности для кода ({core.code.m}, {core.code.r})")
+    common_cores=[RMCore.RMCore(4,2),RMCore.RMCore(5,2),RMCore.RMCore(6,2),RMCore.RMCore(7,2),RMCore.RMCore(8,2),RMCore.RMCore(9,2),RMCore.RMCore(10,2)]
+    for core in common_cores:
+        test_random_rm_core(core)
+        print(f"Закончили вычисления вероятности для кода ({core.code.m}, {core.code.r})")
     core=RMCore.RMCore(4,2)
     # print(rm.mistakes_count)
     # print(rm.get_matrix(4,1))
-    measure_main_execution_time_for_core()
+    #measure_main_execution_time_for_core()
 if __name__ == '__main__':
     main()
