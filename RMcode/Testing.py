@@ -176,7 +176,6 @@ def test_decode_2(rm_core, num_tests):
         encoded_message = rm_core.encode(message)
         decoded_message = rm_core.final_version_decode(encoded_message, m, rm_core.code.r)
         print(f'm: {message},\n, \n {decoded_message}')
-
 def worker3(core, count, fail_limit, total_limit):
     fail_count = 0
     total_count = 0
@@ -186,13 +185,13 @@ def worker3(core, count, fail_limit, total_limit):
         message = [random.choice([0, 1]) for _ in range(c)]
         encoded = core.encode(message)
         emessage = apply_errors(encoded, generate_one_random_combination(core.code.n, count))
-        if core.final_version_decode(emessage, core.code.m, core.code.r) != message:
+        if core.real_final_version_decode(emessage, 10) != message:
             fail_count += 1
         if fail_count>=fail_limit:
             break
     return (total_count, fail_count)
-def tests_rm_core(core, count, num_processes=4):
-    fail_limit_per_process = 1024 // num_processes
+def tests_rm_core(core, count, num_processes=5):
+    fail_limit_per_process = 1000 // num_processes
     with ProcessPoolExecutor(max_workers=num_processes) as executor:
         futures = [executor.submit(worker3, core, count, fail_limit_per_process, 10**5) for _ in range(num_processes)]
         results = [future.result() for future in futures]

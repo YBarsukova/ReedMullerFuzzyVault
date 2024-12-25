@@ -36,7 +36,8 @@ def combine_messages(u_hat, v_hat):
 class RMCore():
     def __init__(self, m,r):
         self.code=RM.RM(m,r)
-        self.data= self.initialize_data(3, m)
+        #self.data= self.initialize_data(3, m)
+        self.codes={}
     def encode(self, message):
         return self.code.encode(message)
     def decode_classic(self, message):
@@ -105,10 +106,12 @@ class RMCore():
 
     def real_decode_first_degree(self, message):
         array = self.decode_first_degree(message)
-        max_index = max(range(len(array)), key=lambda i: abs(array[i]))
-        sign = 0 if array[max_index] >= 0 else 1
-        binary_index = list(map(int, bin(max_index)[2:].zfill(int(math.log(len(message),2)))))
-        result = np.array([sign] + binary_index)
+        max_index = np.argmax(np.abs(array))
+        sign = int(array[max_index] < 0)
+        num_bits = int(math.log2(len(message)))
+        binary_index = np.array(list(map(int, f"{max_index:0{num_bits}b}")), dtype=int)
+        result = np.hstack(([sign], binary_index))
+
         return result
 
     def map_creation(self, m):
@@ -132,7 +135,12 @@ class RMCore():
                 min_dis = distance
                 cur_key = key
         return cur_key
+    def get_code(self, m,r):
+        if (m, r) not in self.codes:
+            self.codes[(m, r)] = RM.RM(m,r)
+        return self.codes[(m, r)]
     def final_version_decode(self, y, m,r):
+
         assert self.code.r == 2
         n = len(y)
         mid = n // 2
@@ -140,11 +148,11 @@ class RMCore():
         y_R = y[mid:]
         s = np.bitwise_xor(y_L, y_R)
         v_hat = self.real_decode_first_degree(s)
-        v_hat_codeword = RM.RM(m-1, r-1).encode(v_hat)
+        v_hat_codeword = self.get_code(m-1, r-1).encode(v_hat)
         y_L_corrected1 = np.bitwise_xor(y_R, v_hat_codeword)
         y_L_corrected2 = y_L.copy()
 
-        c2 = RM.RM(m-1, r)
+        c2 = self.get_code(m-1, r)
         if (m>4):
             u_hat1=self.final_version_decode(y_L_corrected1, m-1,r)
             u_hat2=self.final_version_decode(y_L_corrected2, m-1,r)
@@ -161,7 +169,7 @@ class RMCore():
         codeword2 = np.concatenate((codeword2_left, codeword2_right))
         diff1 = np.sum(y != codeword1)
         diff2 = np.sum(y != codeword2)
-        cur_code=RM.RM(m,r)
+        cur_code=self.get_code(m,r)
         if diff1 <= diff2:
             return cur_code.decode(codeword1)
         else:
@@ -179,5 +187,4 @@ class RMCore():
                     new_array[i + j + step] = array[i + j] - array[i + j + step]
             array = new_array
         return array
-
 

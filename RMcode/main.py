@@ -41,9 +41,9 @@ def vault_tests(vault):
 def measure_main_execution_time_deterministic(c):
     start_time = time.time()
     message_length = RM.sum_binomial(c.m, c.r)
-    message = generate_deterministic_message(42, message_length)
+    message = generate_deterministic_message(11, message_length)
     max_value = 2 ** message_length
-    for repeat in range(100):
+    for repeat in range(1):
         for number in range(100):
             message = generate_deterministic_message(number, message_length)
             emessage = c.encode(message)
@@ -52,6 +52,23 @@ def measure_main_execution_time_deterministic(c):
                 emessage[j] = 3
             d = c.decode(emessage)
             assert message == d, f"Decoded message does not match the original message for input {message}."
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time:.4f} seconds")
+
+def measure_main_execution_time_deterministic_for_rmcore(core):
+    start_time = time.time()
+    message_length = RM.sum_binomial(core.code.m, core.code.r)
+    max_value = 2 ** message_length
+    for repeat in range(100):
+        for number in range(26, 100):
+            message = generate_deterministic_message(number, message_length)
+            emessage = core.code.encode(message)
+            emessage[2] = emessage[2] ^ 1
+            for j in range(3):
+                emessage[j] = 3
+            d = core.real_final_version_decode(emessage )
+            assert message == d, f"Decoded message does not match the original message for input {message, d}."
     end_time = time.time()
     execution_time = end_time - start_time
     print(f"Execution time: {execution_time:.4f} seconds")
@@ -79,6 +96,32 @@ def measure_main_execution_time():
             #assert message == d, f"Decoded message does not match the original message for input {message}."
     print(count)
     print(max_value)
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time:.4f} seconds")
+
+def measure_main_execution_time_for_core():
+    start_time = time.time()
+    core=RMCore.RMCore(6,2)
+    message_length = RM.sum_binomial(core.code.m, core.code.r)
+    # for i in range(1,2):
+    #     message = generate_deterministic_message(i, message_length)
+    #     results = Testing.run_tests_for_error_counts(c, message)
+    #     print(results)
+    max_value =1000
+    count=0
+    for repeat in range(1):
+        for number in range(max_value):
+            message = generate_deterministic_message(number, message_length)
+            emessage = core.code.encode(message)
+            emessage[2] = emessage[2] ^ 1
+            for j in range(0,2):
+                emessage[j] = 3
+            d = core.final_version_decode(emessage, core.code.m, core.code.r)
+            if (message!=d):
+                count+=1
+            #assert message == d, f"Decoded message does not match the original message for input {message}."
+    print(count)
     end_time = time.time()
     execution_time = end_time - start_time
     print(f"Execution time: {execution_time:.4f} seconds")
@@ -147,9 +190,13 @@ def main():
     #     sec=read_set_from_console()
     #     V.unlock(sec)
     # V.unlock([])
-    common_cores=[RMCore.RMCore(4,2),RMCore.RMCore(5,2),RMCore.RMCore(6,2),RMCore.RMCore(7,2),RMCore.RMCore(8,2),RMCore.RMCore(9,2)]
-    for core in common_cores:
-        test_random_rm_core(core)
-        print(f"Закончили вычисления вероятности для кода ({core.code.m}, {core.code.r})")
+    # common_cores=[RMCore.RMCore(4,2),RMCore.RMCore(5,2),RMCore.RMCore(6,2),RMCore.RMCore(7,2),RMCore.RMCore(8,2),RMCore.RMCore(9,2),RMCore.RMCore(10,2)]
+    # for core in common_cores:
+    #     test_random_rm_core(core)
+    #     print(f"Закончили вычисления вероятности для кода ({core.code.m}, {core.code.r})")
+    core=RMCore.RMCore(4,2)
+    # print(rm.mistakes_count)
+    # print(rm.get_matrix(4,1))
+    measure_main_execution_time_for_core()
 if __name__ == '__main__':
     main()
