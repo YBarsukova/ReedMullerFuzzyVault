@@ -185,13 +185,13 @@ def worker3(core, count, fail_limit, total_limit):
         message = [random.choice([0, 1]) for _ in range(c)]
         encoded = core.encode(message)
         emessage = apply_errors(encoded, generate_one_random_combination(core.code.n, count))
-        if core.real_final_version_decode(emessage, 10) != message:
+        if core.real_final_version_decode(emessage, 3) != message:
             fail_count += 1
         if fail_count>=fail_limit:
             break
     return (total_count, fail_count)
 def tests_rm_core(core, count, num_processes=80):
-    fail_limit_per_process = 960// num_processes
+    fail_limit_per_process = 1040// num_processes
     with ProcessPoolExecutor(max_workers=num_processes) as executor:
         futures = [executor.submit(worker3, core, count, fail_limit_per_process, 10**5) for _ in range(num_processes)]
         results = [future.result() for future in futures]

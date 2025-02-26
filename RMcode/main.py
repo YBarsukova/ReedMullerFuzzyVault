@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 
 from numba import typeof
 
@@ -9,6 +10,8 @@ import RMCore
 from RMcode import FuzzyVault
 from RMcode.FuzzyVault import Vault
 from RMcode.Testing import test_splited_unlock_for_error_count, test_decode_recursed_splited, test_decode_2
+import rm_code_tuning
+from RMcode.rm_code_tuning import guess_mistakes
 
 
 def print_map(map_data):
@@ -174,15 +177,29 @@ def test_random_rm_core_starts_in_the_end(core):
     for i in range(max_errors, 0, -1):  # Тестирование с конца
         res = Testing.tests_rm_core(core, i)
         statistics.append(str(i)+" "+str(res))
-        if res == 1.0:
+        if res >= 1-10**(-3):
             for j in range(i - 1, 0, -1):
                 statistics.append(f"{j} 1.0")
             break
-
     end_time = time.time()
     execution_time = end_time - start_time
     print(f"Execution time: {execution_time:.4f} seconds")
     Exel.update_excel_with_data("test_recursed.xlsx", statistics)
+def test_txt(core):
+    with open("results.txt", "a", encoding="utf-8") as file:
+        file.write(str(core.code.m)+" "+str(core.code.r)+'\n')
+    for i in range(core.code.n//2, 0, -1):  # Тестирование с конца
+        result = Testing.tests_rm_core(core, i)
+        with open("results.txt", "a", encoding="utf-8") as file:
+            file.write(str(i)+" "+str(result) + "\n")
+        print(f"Записан результат {i + 1}: {result}")
+        if result >= 0.99:
+            with open("results.txt", "a", encoding="utf-8") as file:
+                for j in range(i - 1, 0, -1):
+                        file.write(str(i) + " " + str(result) + "\n")
+                break
+    with open("results.txt", "a", encoding="utf-8") as file:
+        file.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n")
 
 def main():
     #measure_main_execution_time
@@ -206,12 +223,13 @@ def main():
     # while True:
     #     sec=read_set_from_console()
     #     V.unlock(sec)
-    # V.unlock([])
-    common_cores=[RMCore.RMCore(4,2),RMCore.RMCore(5,2),RMCore.RMCore(6,2),RMCore.RMCore(7,2),RMCore.RMCore(8,2),RMCore.RMCore(9,2),RMCore.RMCore(10,2)]
-    for core in common_cores:
-        test_random_rm_core(core)
-        print(f"Закончили вычисления вероятности для кода ({core.code.m}, {core.code.r})")
+    # V.unlock([]
+    # common_cores=[RMCore.RMCore(10,2)]
+    # for core in common_cores:
+    #     test_txt(core)
+    #     print(f"Закончили вычисления вероятности для кода ({core.code.m}, {core.code.r})")
     core=RMCore.RMCore(4,2)
+    guess_mistakes(core, pow(2,-10))
     # print(rm.mistakes_count)
     # print(rm.get_matrix(4,1))
     #measure_main_execution_time_for_core()
