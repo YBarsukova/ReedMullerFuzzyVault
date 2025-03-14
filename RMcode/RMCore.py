@@ -139,10 +139,11 @@ class RMCore():
         if (m, r) not in self.codes:
             self.codes[(m, r)] = RM.RM(m,r)
         return self.codes[(m, r)]
-    def real_final_version_decode(self, message, depth):
+    def real_final_version_decode(self, message, depth=1):
         return self.final_version_decode(message, self.code.m, self.code.r, depth)
     def final_version_decode(self, y, m,r, depth):
-
+        if (depth>7):
+            depth=7
         assert self.code.r == 2
         n = len(y)
         mid = n // 2

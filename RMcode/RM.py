@@ -168,9 +168,12 @@ class RM:
         return self.gr_cache[r]
 
     def encode(self, message):
-        matrix = self.get_matrix(self.m, self.r)
-        result = np.dot(np.array(message), matrix)
-        return np.array(result % 2).flatten()
+        if len(message)!=self.k:
+            print("Wrong message length, the right variant is "+str(self.k))
+        else:
+            matrix = self.get_matrix(self.m, self.r)
+            result = np.dot(np.array(message), matrix)
+            return np.array(result % 2).flatten()
 
     def decode_highest_degree_block(self, block_len, encoded_word, degree):
         result1 = ""

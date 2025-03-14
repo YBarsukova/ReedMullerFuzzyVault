@@ -190,8 +190,8 @@ def worker3(core, count, fail_limit, total_limit):
         if fail_count>=fail_limit:
             break
     return (total_count, fail_count)
-def tests_rm_core(core, count, num_processes=80):
-    fail_limit_per_process = 1040// num_processes
+def tests_rm_core(core, count, num_processes=60):
+    fail_limit_per_process = 1020// num_processes
     with ProcessPoolExecutor(max_workers=num_processes) as executor:
         futures = [executor.submit(worker3, core, count, fail_limit_per_process, 10**5) for _ in range(num_processes)]
         results = [future.result() for future in futures]

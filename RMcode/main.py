@@ -12,7 +12,7 @@ from RMcode.FuzzyVault import Vault
 from RMcode.Testing import test_splited_unlock_for_error_count, test_decode_recursed_splited, test_decode_2
 import rm_code_tuning
 from RMcode.rm_code_tuning import guess_mistakes
-
+import RealFuzziVault
 
 def print_map(map_data):
     for key, value in map_data.items():
@@ -224,14 +224,22 @@ def main():
     #     sec=read_set_from_console()
     #     V.unlock(sec)
     # V.unlock([]
-    # common_cores=[RMCore.RMCore(10,2)]
+    # print(comp(4,2))
+    # common_cores=[RMCore.RMCore(12,3), RMCore.RMCore(13,2), RMCore.RMCore(14,2) ]
     # for core in common_cores:
-    #     test_txt(core)
-    #     print(f"Закончили вычисления вероятности для кода ({core.code.m}, {core.code.r})")
-    core=RMCore.RMCore(4,2)
-    guess_mistakes(core, pow(2,-10))
+    #      test_txt(core)
+    #      print(f"Закончили вычисления вероятности для кода ({core.code.m}, {core.code.r})")
+    # core=RMCore.RMCore(13,3)
+    # rm_code_tuning.guess_real(core, pow(2, -80))
     # print(rm.mistakes_count)
     # print(rm.get_matrix(4,1))
     #measure_main_execution_time_for_core()
+    FV=RealFuzziVault.FuzziVault(4,2, 3)
+    message=[1]*11
+    kee=[0]
+    FV.lock(message, kee)
+    kee1 = [0]
+    FV.unlock(kee1)
+
 if __name__ == '__main__':
     main()
