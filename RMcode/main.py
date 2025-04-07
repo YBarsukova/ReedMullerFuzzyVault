@@ -1,3 +1,4 @@
+import math
 import time
 from datetime import datetime
 
@@ -230,16 +231,21 @@ def main():
     #      test_txt(core)
     #      print(f"Закончили вычисления вероятности для кода ({core.code.m}, {core.code.r})")
     # core=RMCore.RMCore(13,3)
-    # rm_code_tuning.guess_real(core, pow(2, -80))
+    print(RealFuzziVault.first_filter(2,13,math.pow(2,-50)))
+    # core=RMCore.RMCore(3,2)
+    # print(core.code.k)
+    # print(core.code.get_matrix(3,2))
+    # print(core.code.decode([1,0,0,1,1,1,1,0]))
+    # rm_code_tuning.guess_real(cor0e, pow(2, -80))
     # print(rm.mistakes_count)
     # print(rm.get_matrix(4,1))
     #measure_main_execution_time_for_core()
-    FV=RealFuzziVault.FuzziVault(4,2, 3)
-    message=[1]*11
-    kee=[0]
-    FV.lock(message, kee)
-    kee1 = [0]
-    FV.unlock(kee1)
+    # FV=RealFuzziVault.FuzziVault(4,2, 3)
+    # message=[1]*11
+    # kee=[0]
+    # FV.lock(message, kee)
+    # kee1 = [0]
+    # FV.unlock(kee1)
 
 if __name__ == '__main__':
     main()

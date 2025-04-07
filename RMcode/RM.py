@@ -192,6 +192,7 @@ class RM:
                     res_arr.append(encoded_word[pos])
                 x_variants.append(xor_all_elements(res_arr))
             result1 += str(find_most_common_bit(x_variants))
+        print(result1)
         return result1
 
     def decode_without_erasures(self, mess_and_mis):
