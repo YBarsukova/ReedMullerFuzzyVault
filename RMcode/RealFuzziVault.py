@@ -3,6 +3,8 @@ from math import comb
 import RMCore
 import numpy as np
 import hashlib
+import mpmath as mp
+mp.dps = 80
 def sha256_hash(data):
     if isinstance(data, str):
         data = data.encode('utf-8')
@@ -57,18 +59,38 @@ def get_probability(num_errors, garant, filename="results13_2.txt"):
     if num_errors > max_error:
         return 0.0
     return None
-def first_filter(r,m, max_probability):
-    rm=RMCore.RMCore(m,r)
-    possible_set=set()
-    for t in range(rm.code.mistakes_count, int(rm.code.n*0.15)): #TODO, проход по количеству ошибок
-        for s in range(1, t): #TODO спросить от какой границы
-            #TODO MPMATH
-            # result = sum(math.comb(t, a) * comb(t, s - a) * get_probability(t + s - 2 * a, rm.code.mistakes_count) for a in range(s + 1))
-            # result /= comb(rm.code.n, s)
-            result = compute_probability(t,s,rm.code.mistakes_count, rm.code.n)
-        if (result<=max_probability):
-            possible_set.add(t)
-            #TODO поставить break
+def get_probability_user_version(num_errors, garant, filename="results13_2.txt"):
+    data = load_data(garant, filename)
+    if not data:
+        raise ValueError("Файл пуст или не содержит корректных данных.")
+    max_error = max(data.keys())
+    min_error = min(data.keys())
+    max_value=max(data.values())
+    if num_errors in data:
+        return data[num_errors]
+    if num_errors < min_error:
+        return max_value
+    if num_errors > max_error:
+        return 0.0
+    return None
+def get_probability1(value, mistakes_count):
+    return mp.mpf(1) / (value + mistakes_count + 1)
+def first_filter(r, m, max_probability):
+    rm = RMCore.RMCore(m, r)
+    possible_set = set()
+    # Перебор t начинается от rm.code.mistakes_count до 15% от rm.code.n
+    for t in range(int(rm.code.mistakes_count), int(rm.code.n * 0.15)):
+        for s in range(1, t):
+            result = mp.mpf(0)
+            for a in range(s + 1):
+                comb1 = mp.binomial(t, a)        # C(t, a)
+                comb2 = mp.binomial(t, s - a)      # C(t, s - a)
+                prob = get_probability1(t + s - 2 * a, rm.code.mistakes_count)
+                result += comb1 * comb2 * prob
+            result /= mp.binomial(rm.code.n, s)
+            if result <= max_probability:
+                possible_set.add(t)
+                #break
     return possible_set
 def log_comb(n, k):
     return math.lgamma(n + 1) - math.lgamma(k + 1) - math.lgamma(n - k + 1)
@@ -90,28 +112,35 @@ def compute_probability(t, s, mistakes_count, n):
     return result
 
 def compute_p(n, t, k):
-    log_numerator = log_comb(n - t, k)
-    log_denominator = log_comb(n, k)
-    log_p = log_numerator - log_denominator
-    p = math.exp(log_p)
+    # Вычисляем p как отношение биномиальных коэффициентов:
+    # p = C(n - t, k) / C(n, k)
+    numerator = mp.binomial(n - t, k)
+    denominator = mp.binomial(n, k)
+    p = numerator / denominator
     return p
-def second_filter(r,m, max_prob): #пытаемся угадать верные координаты
-    rm=RMCore.RMCore(m,r)
-    poss_set=set()
-    for t in range(rm.code.mistakes_count, int(rm.code.n*0.75)):
-        if (compute_p(rm.code.n, t,rm.code.k) <= max_prob):
+
+def second_filter(r, m, max_prob):
+    rm = RMCore.RMCore(m, r)
+    poss_set = set()
+    max_prob_mpf = mp.mpf(max_prob)
+    for t in range(int(rm.code.mistakes_count), int(rm.code.n * 0.75)):
+        p = compute_p(rm.code.n, t, rm.code.k)
+        if p <= max_prob_mpf:
             poss_set.add(t)
     return poss_set
-
-def third_filter(r,m): #все хранилище закидываем
-    return 1
-def user_filter(r,m):#TODO до 0.95 можем позволить, выбираем из полученных сетов от первых двух фильтров (не для т, а для количества возможных ошибок пользователя)
-    #чисто для себя
-    return 1
-def evaluate_count_of_flipped(m,r):
-    intersection = first_filter(r,m) & second_filter(r,m) & user_filter(r,m)
-    #return min(intersection)
-    return 1
+def third_filter(r,m, max_prob):
+    rm = RMCore.RMCore(m, r)
+    poss_set = set()
+    mc=rm.code.mistakes_count
+    for t in range(rm.code.mistakes_count, int(rm.code.n*0.75)):
+        if get_probability(t,mc)<=max_prob:
+            poss_set.add(t)
+    return poss_set
+def evaluate_count_of_flipped(m,r, max_prob):
+    intersection = first_filter(r, m, max_prob) & second_filter(r, m, max_prob) & third_filter(r, m, max_prob)
+    if not intersection:
+        raise ValueError("Нет подходящих значений flipped: пересечение фильтров пустое.")
+    return min(intersection)
 class FuzzyVault():
     def __init__(self, m, r, attempts_count):
         self.code=RMCore.RMCore(m,r)
@@ -139,5 +168,8 @@ class FuzzyVault():
             self.attempts_count-=1
             print("Vault hasn't been unlocked, now u have only " + str(self.attempts_count)+ " attempts \n")
 
+    # def user_filter(r,m):  # TODO до 0.95 можем позволить, выбираем из полученных сетов от первых двух фильтров (не для т, а для количества возможных ошибок пользователя)
+    #
+    #     return 1
 
 

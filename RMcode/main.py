@@ -231,7 +231,7 @@ def main():
     #      test_txt(core)
     #      print(f"Закончили вычисления вероятности для кода ({core.code.m}, {core.code.r})")
     # core=RMCore.RMCore(13,3)
-    print(RealFuzziVault.first_filter(2,13,math.pow(2,-50)))
+    print(RealFuzziVault.evaluate_count_of_flipped(13,2,math.pow(2,-50)))
     # core=RMCore.RMCore(3,2)
     # print(core.code.k)
     # print(core.code.get_matrix(3,2))
