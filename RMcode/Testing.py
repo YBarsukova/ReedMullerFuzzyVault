@@ -9,7 +9,8 @@ from tqdm import tqdm
 import RM
 import RMCore
 from concurrent.futures import ProcessPoolExecutor
-
+import concurrent.futures
+import RealFuzziVault
 from RMcode.RM import sum_binomial
 
 
@@ -204,3 +205,21 @@ def tests_rm_core(core, count, num_processes=60):
     if res<0:
         print(total_count)
     return res
+def run_all_filters(r, m, max_prob):
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        future1 = executor.submit(RealFuzziVault.first_filter, r, m, max_prob)
+        future2 = executor.submit(RealFuzziVault.second_filter, r, m, max_prob)
+        future3 = executor.submit(RealFuzziVault.third_filter, r, m, max_prob)
+
+        results = {
+            'first_filter': future1.result(),
+            'second_filter': future2.result(),
+            'third_filter': future3.result()
+        }
+
+    filename = f"filters_result_{r}_{m}.txt"
+    with open(filename, 'w') as file:
+        for key, value in results.items():
+            file.write(f"{key}: {value}\n")
+
+    return results

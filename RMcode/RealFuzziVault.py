@@ -24,7 +24,26 @@ def invert_bits(binary_array, indices):
     return binary_array
 
 _data_cache = None
+binomial_cache = {}
 
+def cached_binomial(n, k):
+    if (n, k) not in binomial_cache:
+        binomial_cache[(n, k)] = mp.binomial(n, k)
+    return binomial_cache[(n, k)]
+
+def efficient_binomial(n, k):
+    if (n, k) in binomial_cache:
+        return binomial_cache[(n, k)]
+    if k == 0 or n == k:
+        binomial_cache[(n, k)] = mp.mpf(1)
+        return mp.mpf(1)
+    result = mp.mpf(1)
+    k = min(k, n - k)
+    for i in range(1, k + 1):
+        result *= (n - i + 1)
+        result /= i
+    binomial_cache[(n, k)] = result
+    return result
 def load_data(garant, filename="results13_2.txt"):
     global _data_cache
     if _data_cache is None:
@@ -45,20 +64,72 @@ def load_data(garant, filename="results13_2.txt"):
                     continue
     return _data_cache
 
+import os
+import mpmath as mp
 
-def get_probability(num_errors, garant, filename="results13_2.txt"):
-    data = load_data(garant, filename)
-    if not data:
-        raise ValueError("Файл пуст или не содержит корректных данных.")
-    max_error = max(data.keys())
-    min_error = min(data.keys())
-    if num_errors in data:
-        return data[num_errors]
-    if num_errors < min_error:
+# Глобальный кэш (для словаря) — при желании можно оформить не как глобальный
+_data_cache = None
+
+def init_data(m_c, filename="results13_2.txt"):
+    """
+    Читает файл и формирует словарь:
+      ключ = (первая_колонка + rm.code.mistakes_count)
+      значение = вторая_колонка (float).
+    Возвращает словарь.
+    """
+    data_dict = {}
+    # Открываем файл
+    with open(filename, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+            try:
+                error_count_raw = int(parts[0])
+                probability = float(parts[1])
+
+                # Смещаем ключ на rm.code.mistakes_count
+                error_count_offset = error_count_raw + m_c
+                data_dict[error_count_offset] = probability
+            except ValueError:
+                # Если что-то не парсится — пропускаем
+                pass
+    return data_dict
+
+def get_probability(rm, num_errors):
+    """
+    Достаём из готового словаря значения по ключу = num_errors.
+    Если ключа нет — возвращаем None или 0.0/1.0 по логике пользователя.
+    """
+    global _data_cache
+    if _data_cache is None:
+        # Инициализируем кэш 1 раз (можно делать и при старте программы)
+        _data_cache = init_data(rm, "results13_2.txt")
+        if not _data_cache:
+            raise ValueError("Файл пуст или не содержит корректных данных.")
+
+    # Теперь работаем с _data_cache
+    # Хотите логику 'меньше min -> 1.0; больше max -> 0.0' — добавим:
+    keys_sorted = sorted(_data_cache.keys())
+    min_key = keys_sorted[0]
+    max_key = keys_sorted[-1]
+
+    if num_errors < min_key:
         return 1.0
-    if num_errors > max_error:
+    if num_errors > max_key:
         return 0.0
+
+    # Если прямое попадание
+    if num_errors in _data_cache:
+        return _data_cache[num_errors]
+
+    # Если нет точного ключа (между min_key и max_key)
+    # Возвращаем None (или другой вариант, например 0.0):
     return None
+
 def get_probability_user_version(num_errors, garant, filename="results13_2.txt"):
     data = load_data(garant, filename)
     if not data:
@@ -73,25 +144,30 @@ def get_probability_user_version(num_errors, garant, filename="results13_2.txt")
     if num_errors > max_error:
         return 0.0
     return None
-def get_probability1(value, mistakes_count):
-    return mp.mpf(1) / (value + mistakes_count + 1)
 def first_filter(r, m, max_probability):
     rm = RMCore.RMCore(m, r)
     possible_set = set()
-    # Перебор t начинается от rm.code.mistakes_count до 15% от rm.code.n
-    for t in range(int(rm.code.mistakes_count), int(rm.code.n * 0.15)):
+    for t in range(1, int(rm.code.n * 0.5)):
+        flag = True
         for s in range(1, t):
             result = mp.mpf(0)
+            bin_n_s = efficient_binomial(rm.code.n, s)
             for a in range(s + 1):
-                comb1 = mp.binomial(t, a)        # C(t, a)
-                comb2 = mp.binomial(t, s - a)      # C(t, s - a)
-                prob = get_probability1(t + s - 2 * a, rm.code.mistakes_count)
-                result += comb1 * comb2 * prob
-            result /= mp.binomial(rm.code.n, s)
-            if result <= max_probability:
-                possible_set.add(t)
-                #break
+                prob_value = t + s - 2 * a
+                prob = get_probability(rm.code.mistakes_count,prob_value)
+                if prob is None or prob == 0.0:
+                    continue
+                comb_product = efficient_binomial(t, a) * efficient_binomial(t, s - a)
+                result += comb_product * prob
+            result /= bin_n_s
+            if result > max_probability:
+                flag = False
+                break
+        if flag:
+            possible_set.add(t)
     return possible_set
+
+
 def log_comb(n, k):
     return math.lgamma(n + 1) - math.lgamma(k + 1) - math.lgamma(n - k + 1)
 def compute_probability(t, s, mistakes_count, n):
@@ -112,8 +188,6 @@ def compute_probability(t, s, mistakes_count, n):
     return result
 
 def compute_p(n, t, k):
-    # Вычисляем p как отношение биномиальных коэффициентов:
-    # p = C(n - t, k) / C(n, k)
     numerator = mp.binomial(n - t, k)
     denominator = mp.binomial(n, k)
     p = numerator / denominator
@@ -123,7 +197,7 @@ def second_filter(r, m, max_prob):
     rm = RMCore.RMCore(m, r)
     poss_set = set()
     max_prob_mpf = mp.mpf(max_prob)
-    for t in range(int(rm.code.mistakes_count), int(rm.code.n * 0.75)):
+    for t in range(int(rm.code.mistakes_count), int(rm.code.n * 0.5)):
         p = compute_p(rm.code.n, t, rm.code.k)
         if p <= max_prob_mpf:
             poss_set.add(t)
@@ -132,14 +206,15 @@ def third_filter(r,m, max_prob):
     rm = RMCore.RMCore(m, r)
     poss_set = set()
     mc=rm.code.mistakes_count
-    for t in range(rm.code.mistakes_count, int(rm.code.n*0.75)):
+    for t in range(rm.code.mistakes_count, int(rm.code.n*0.5)):
         if get_probability(t,mc)<=max_prob:
             poss_set.add(t)
     return poss_set
 def evaluate_count_of_flipped(m,r, max_prob):
-    intersection = first_filter(r, m, max_prob) & second_filter(r, m, max_prob) & third_filter(r, m, max_prob)
+    intersection =second_filter(r, m, max_prob) & third_filter(r, m, max_prob)
     if not intersection:
         raise ValueError("Нет подходящих значений flipped: пересечение фильтров пустое.")
+    print(3688 in intersection)
     return min(intersection)
 class FuzzyVault():
     def __init__(self, m, r, attempts_count):

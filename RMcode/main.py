@@ -231,7 +231,15 @@ def main():
     #      test_txt(core)
     #      print(f"Закончили вычисления вероятности для кода ({core.code.m}, {core.code.r})")
     # core=RMCore.RMCore(13,3)
-    print(RealFuzziVault.evaluate_count_of_flipped(13,2,math.pow(2,-50)))
+    #print(RealFuzziVault.first_filter(2,13, math.pow(2,-10)))
+    #print(RealFuzziVault.evaluate_count_of_flipped(13,2,math.pow(2, -80)))
+    Testing.run_all_filters(2,13,math.pow(2,-80))
+    # rm=RMCore.RMCore(13,2)
+    # print(rm.code.mistakes_count)
+    # with open("props.txt",'a') as f:
+    #     for i in range(0,int(math.pow(2,13))):
+    #         f.write(f'{i} {RealFuzziVault.get_probability(i, rm.code.mistakes_count)} \n')
+
     # core=RMCore.RMCore(3,2)
     # print(core.code.k)
     # print(core.code.get_matrix(3,2))
