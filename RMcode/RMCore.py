@@ -81,7 +81,6 @@ class RMCore():
         s = np.bitwise_xor(y_L, y_R)
         decode_map = self.data[self.code.m - 1]
         v_hat = self.decode_using_map(s, decode_map)
-        print(typeof(tuple(v_hat)))
         v_hat_codeword = decode_map[tuple(v_hat)]
         y_L_corrected1 = np.bitwise_xor(y_R, v_hat_codeword)
         y_L_corrected2 = y_L.copy()
@@ -130,7 +129,6 @@ class RMCore():
         for key in decode_map.keys():
             key_str = ''.join(map(str, decode_map[key]))
             distance = levenshtein_distance1(bits_str, key_str)
-            print(bits, key_str, distance)
             if distance < min_dis:
                 min_dis = distance
                 cur_key = key
@@ -141,7 +139,7 @@ class RMCore():
         return self.codes[(m, r)]
     def real_final_version_decode(self, message, depth=1):
         return self.final_version_decode(message, self.code.m, self.code.r, depth)
-    def final_version_decode(self, y, m,r, depth):
+    def final_version_decode1(self, y, m,r, depth):
         if (depth>7):
             depth=7
         assert self.code.r == 2
@@ -156,7 +154,7 @@ class RMCore():
         y_L_corrected2 = y_L.copy()
 
         c2 = self.get_code(m-1, r)
-        if (m>4 and depth>0):
+        if (m>4 and depth>0 and r==m):
             u_hat1=self.final_version_decode(y_L_corrected1, m-1,r, depth-1)
             u_hat2=self.final_version_decode(y_L_corrected2, m-1,r, depth-1)
         else:
@@ -190,4 +188,57 @@ class RMCore():
                     new_array[i + j + step] = array[i + j] - array[i + j + step]
             array = new_array
         return array
+    def final_version_decode(self, y, m, r,
+                             max_depth=7,
+                             min_m_r_diff=2,
+                             current_depth=0):
+        if current_depth >= max_depth or (m - r) < min_m_r_diff:
+            return self.get_code(m, r).decode(y)
+        n = len(y)
+        assert n == 2 ** m, f"Длина слова должна быть 2^m={2 ** m}, а получена {n}"
+        mid = n // 2
+        y_L, y_R = y[:mid], y[mid:]
+        s = np.bitwise_xor(y_L, y_R)
+        if r - 1 > 1 and (m - r) >= min_m_r_diff:
+            v_hat = self.final_version_decode(
+                s, m - 1, r - 1,
+                max_depth=max_depth,
+                min_m_r_diff=min_m_r_diff,
+                current_depth=current_depth + 1
+            )
+        elif r - 1 == 1:
+            v_hat = self.real_decode_first_degree(s)
+        else:
+            v_hat = self.get_code(m - 1, r - 1).decode(s)
+        v_cw = self.get_code(m - 1, r - 1).encode(v_hat)
+        y_L_corr = np.bitwise_xor(y_R, v_cw)
+        y_L_orig = y_L.copy()
+        if (m - r) >= min_m_r_diff:
+            u_hat1 = self.final_version_decode(
+                y_L_corr, m - 1, r,
+                max_depth=max_depth,
+                min_m_r_diff=min_m_r_diff,
+                current_depth=current_depth + 1
+            )
+            u_hat2 = self.final_version_decode(
+                y_L_orig, m - 1, r,
+                max_depth=max_depth,
+                min_m_r_diff=min_m_r_diff,
+                current_depth=current_depth + 1
+            )
+        else:
+            u_code = self.get_code(m - 1, r)
+            u_hat1 = u_code.decode(y_L_corr)
+            u_hat2 = u_code.decode(y_L_orig)
+        u_code = self.get_code(m - 1, r)
+        u1_cw = u_code.encode(u_hat1)
+        cw1 = np.concatenate((u1_cw, np.bitwise_xor(u1_cw, v_cw)))
+        u2_cw = u_code.encode(u_hat2)
+        cw2 = np.concatenate((u2_cw, np.bitwise_xor(u2_cw, v_cw)))
+        diff1 = np.count_nonzero(y != cw1)
+        diff2 = np.count_nonzero(y != cw2)
+        best_cw = cw1 if diff1 <= diff2 else cw2
+        return self.get_code(m, r).decode(best_cw)
+
+
 

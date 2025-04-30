@@ -1,13 +1,13 @@
 import math
 import time
 from datetime import datetime
-
+import random
 from numba import typeof
 
 import RM
 import Testing
 import Exel
-import RMCore
+import reedmullercode
 from RMcode import FuzzyVault
 from RMcode.FuzzyVault import Vault
 from RMcode.Testing import test_splited_unlock_for_error_count, test_decode_recursed_splited, test_decode_2
@@ -201,6 +201,22 @@ def test_txt(core):
                 break
     with open("results.txt", "a", encoding="utf-8") as file:
         file.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n")
+def test_for_combined(core):
+    with open("results_for_majory.txt", "a", encoding="utf-8") as file:
+        file.write(str(core.m)+" "+str(core.r)+'\n')
+    for i in range(core.n//2, 0, -10):
+        print("start with "+ str(i)+"\n")
+        result = Testing.test_combined(core, i)
+        with open("results_for_majory.txt", "a", encoding="utf-8") as file:
+            file.write(str(i)+" "+str(result) + "\n")
+        print(f"Записан результат {i + 1}: {result}")
+        if result >= 0.99:
+            with open("results_for_majory.txt", "a", encoding="utf-8") as file:
+                for j in range(i - 1, 0, -1):
+                        file.write(str(i) + " " + str(result) + "\n")
+                break
+    with open("results_for_majory.txt", "a", encoding="utf-8") as file:
+        file.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n")
 
 def main():
     #measure_main_execution_time
@@ -233,7 +249,9 @@ def main():
     # core=RMCore.RMCore(13,3)
     #print(RealFuzziVault.first_filter(2,13, math.pow(2,-10)))
     #print(RealFuzziVault.evaluate_count_of_flipped(13,2,math.pow(2, -80)))
-    Testing.run_all_filters(2,13,math.pow(2,-80))
+    #Testing.run_all_filters(2,13,math.pow(2,-80))
+    core=reedmullercode.CombinedRM(13,7)
+    test_for_combined(core)
     # rm=RMCore.RMCore(13,2)
     # print(rm.code.mistakes_count)
     # with open("props.txt",'a') as f:

@@ -147,6 +147,31 @@ class RM:
         self.matrix_cache = {}
         self.g1 = creation_g1(m)
         self.gr_cache = {}
+        self.multipliers_cache = {}
+
+    def get_multipliers(self, num_multipliers, num_x, idx):
+        """
+        Возвращает idx-ю комбинацию из C(num_x, num_multipliers).
+        Использует кеш внутри экземпляра для маленьких значений.
+        """
+        key = (num_multipliers, num_x)
+        total = math.comb(num_x, num_multipliers)
+        if num_multipliers < 0 or num_multipliers > num_x:
+            raise ValueError("Число выбираемых элементов должно быть между 0 и num_x")
+        if total < 5000:
+            # кешируем все
+            if key not in self.multipliers_cache:
+                self.multipliers_cache[key] = list(combinations(range(num_x), num_multipliers))
+            combos = self.multipliers_cache[key]
+            if idx < 0 or idx >= len(combos):
+                raise IndexError("Индекс за пределами комбинаций")
+            return combos[idx]
+        else:
+            # для больших просто итерируем
+            try:
+                return next(islice(combinations(range(num_x), num_multipliers), idx, None))
+            except StopIteration:
+                raise IndexError("Индекс за пределами комбинаций")
 
     def get_erases_count(self):
         return self.erases_count
@@ -192,9 +217,7 @@ class RM:
                     res_arr.append(encoded_word[pos])
                 x_variants.append(xor_all_elements(res_arr))
             result1 += str(find_most_common_bit(x_variants))
-        print(result1)
         return result1
-
     def decode_without_erasures(self, mess_and_mis):
         z = mess_and_mis.copy()
         res = []

@@ -12,7 +12,7 @@ from concurrent.futures import ProcessPoolExecutor
 import concurrent.futures
 import RealFuzziVault
 from RMcode.RM import sum_binomial
-
+from reedmullercode import CombinedRM
 
 def generate_error_combinations(message_length, num_errors):
     positions = range(message_length)
@@ -223,3 +223,31 @@ def run_all_filters(r, m, max_prob):
             file.write(f"{key}: {value}\n")
 
     return results
+def worker4(core, count, fail_limit, total_limit):
+    fail_count = 0
+    total_count = 0
+    c=core.k
+    for i in range(total_limit):
+        total_count += 1
+        message = [random.choice([0, 1]) for _ in range(c)]
+        encoded = core.encode(message)
+        emessage = apply_errors(encoded, generate_one_random_combination(core.n, count))
+        if core.decode_without_erasures(emessage) != message:
+            fail_count += 1
+        if fail_count>=fail_limit:
+            break
+    return (total_count, fail_count)
+def test_combined(core, count, num_processes=60):
+    fail_limit_per_process = 1020// num_processes
+    with ProcessPoolExecutor(max_workers=num_processes) as executor:
+        futures = [executor.submit(worker4, core, count, fail_limit_per_process, 10**5) for _ in range(num_processes)]
+        results = [future.result() for future in futures]
+    total_count=0
+    failed_count=0
+    for elem  in results:
+        total_count+=elem[0]
+        failed_count+=elem[1]
+    res=1 - (failed_count/ total_count)
+    if res<0:
+        print(total_count)
+    return res
