@@ -1,0 +1,363 @@
+import itertools
+import math
+from functools import lru_cache
+from itertools import combinations, islice
+
+import numpy as np
+
+# Cache for small (num_multipliers, num_x) combinations (materialized list).
+small_values_cache = {}
+
+
+@lru_cache(None)
+def binomial_cached(m, i):
+    """
+    Cached binomial coefficient C(m, i).
+    """
+    return math.comb(m, i)
+
+
+def sum_binomial(m, r):
+    """
+    Compute sum_{i=0..r} C(m, i), i.e. the message length k for RM(m, r).
+    """
+    total = 0
+    for i in range(r + 1):
+        current = binomial_cached(m, i)
+        total += current
+    return total
+
+
+def replace_elements(arr, target, replacement):
+    """
+    Replace all occurrences of `target` with `replacement` in a list.
+    """
+    return [replacement if x == target else x for x in arr]
+
+
+def xor_all_elements(arr):
+    """
+    XOR all elements in a list (interpreting them as bits).
+    """
+    result = 0
+    for num in arr:
+        result ^= num
+    return result
+
+
+def create_string(a_list, b_list, a_coordinates):
+    """
+    Interleave a_list and b_list into a single bitstring using positions from a_coordinates for a_list.
+    The remaining positions are filled from b_list in order.
+    """
+    a_list = [str(a) for a in a_list]
+    b_list = [str(b) for b in b_list]
+    result = [""] * (len(a_list) + len(b_list))
+
+    for i, pos in enumerate(a_coordinates):
+        result[pos] = a_list[i]
+
+    b_index = 0
+    for i in range(len(result)):
+        if result[i] == "":
+            result[i] = b_list[b_index]
+            b_index += 1
+
+    return "".join(result)
+
+
+def create_array(a_array, b_array, a_coordinates):
+    """
+    Interleave a_array and b_array into a single array using positions from a_coordinates for a_array.
+    The remaining positions are filled from b_array in order.
+    """
+    result = np.empty(len(a_array) + len(b_array), dtype=int)
+    result.fill(-1)
+
+    result[a_coordinates] = a_array
+
+    b_index = 0
+    for i in range(len(result)):
+        if result[i] == -1:
+            result[i] = b_array[b_index]
+            b_index += 1
+
+    return result
+
+
+@lru_cache(None)
+def get_multipliers(num_multipliers, num_x, idx):
+    """
+    Return the idx-th combination (as a tuple) of size num_multipliers from range(num_x).
+    Switches between a cached materialized list and a streaming iterator based on total count.
+    """
+    if binomial_cached(num_x, num_multipliers) < 5000:
+        return get_multipliers_for_small_values(num_multipliers, num_x, idx)
+    return get_multipliers_for_huge_values(num_multipliers, num_x, idx)
+
+
+def get_multipliers_for_huge_values(num_multipliers, num_x, idx):
+    """
+    Return the idx-th combination for huge combination spaces by iterating with islice.
+    """
+    try:
+        selected_combination = next(
+            islice(combinations(range(num_x), num_multipliers), idx, None)
+        )
+    except StopIteration:
+        raise IndexError("Index out of bounds for combinations")
+    return selected_combination
+
+
+def get_multipliers_for_small_values(num_multipliers, num_x, idx):
+    """
+    Return the idx-th combination for small combination spaces using a materialized cached list.
+    """
+    cache_key = (num_multipliers, num_x)
+    if cache_key not in small_values_cache:
+        small_values_cache[cache_key] = list(combinations(range(num_x), num_multipliers))
+
+    index_combinations = small_values_cache[cache_key]
+    if idx < 0 or idx >= len(index_combinations):
+        raise IndexError("Index out of bounds for combinations")
+    return index_combinations[idx]
+
+
+def fill_bit_array(n):
+    """
+    Build a list-of-lists representation of all n-bit vectors (as columns).
+    Result shape is (n, 2^n).
+    """
+    num_rows = 2**n
+    array = [[0] * num_rows for _ in range(n)]
+    for i in range(num_rows):
+        bit_representation = format(i, f"0{n}b")
+        for j in range(n):
+            array[j][i] = int(bit_representation[j])
+    return array
+
+
+def creation_g1(m):
+    """
+    Construct the degree-1 generator rows (variables x_i patterns) for RM(m, r).
+    """
+    return fill_bit_array(m)
+
+
+def generation_gr(g1, r):
+    """
+    Generate the generator rows for monomials of degree r by AND-reducing combinations of g1 rows.
+    """
+    g1 = np.atleast_2d(g1)
+    combs = itertools.combinations(g1, r)
+    res = []
+    for combo in combs:
+        bitwise_product = np.bitwise_and.reduce(combo)
+        res.append(bitwise_product)
+    return np.matrix(res)
+
+
+def matrix_concat(m1, m2):
+    """
+    Vertically stack two matrices/arrays.
+    """
+    return np.vstack((m1, m2))
+
+
+def matrix_generator(m, r):
+    """
+    Build the full generator matrix G for RM(m, r):
+    [constant row] + [degree 1 rows] + ... + [degree r rows].
+    """
+    n = 2**m
+
+    g_0 = [1] * n
+    g_0 = np.array(g_0).reshape(1, -1)
+
+    g_1 = creation_g1(m)
+    g_1 = np.array(g_1)
+
+    res = np.vstack((g_0, g_1))
+    for i in range(2, r + 1):
+        res = matrix_concat(res, generation_gr(g_1, i))
+
+    return res
+
+
+def find_most_common_bit(z):
+    """
+    Return the most common bit in list z (tie breaks to 1).
+    """
+    return 0 if z.count(0) > z.count(1) else 1
+
+
+def comb(n, k):
+    """
+    Convenience wrapper for cached binomial coefficient C(n, k).
+    """
+    return binomial_cached(n, k)
+
+
+class ReedMuller:
+    """
+    Reed-Muller RM(m, r) encoder/decoder with a majority-logic style decoder.
+    Supports erasures marked with value 3 via a simple 0/1 substitution heuristic.
+    """
+
+    def __init__(self, m, r):
+        """
+        Initialize code parameters and per-instance caches.
+        """
+        self.m = m
+        self.r = r
+        self.n = 2**m
+        self.k = sum_binomial(m, r)
+        self.d = 2 ** (self.m - self.r)
+        self.mistakes_count = int((self.d - 1) // 2)
+        self.erases_count = self.d - 1
+
+        self.matrix_cache = {}
+        self.g1 = creation_g1(m)
+        self.gr_cache = {}
+        self.multipliers_cache = {}
+
+    def get_multipliers(self, num_multipliers, num_x, idx):
+        """
+        Return the idx-th combination from C(num_x, num_multipliers).
+        Uses an instance-level cache for small sizes.
+        """
+        key = (num_multipliers, num_x)
+        total = math.comb(num_x, num_multipliers)
+
+        if num_multipliers < 0 or num_multipliers > num_x:
+            raise ValueError("The number of selected elements must be between 0 and num_x")
+
+        if total < 5000:
+            # Cache all combinations for small sizes.
+            if key not in self.multipliers_cache:
+                self.multipliers_cache[key] = list(
+                    combinations(range(num_x), num_multipliers)
+                )
+            combos = self.multipliers_cache[key]
+            if idx < 0 or idx >= len(combos):
+                raise IndexError("Index is out of bounds for combinations")
+            return combos[idx]
+
+        # For large sizes, iterate lazily via islice.
+        try:
+            return next(islice(combinations(range(num_x), num_multipliers), idx, None))
+        except StopIteration:
+            raise IndexError("Index is out of bounds for combinations")
+
+    def get_erases_count(self):
+        """
+        Return the maximum supported erasures count (d - 1).
+        """
+        return self.erases_count
+
+    def get_mistakes_count(self):
+        """
+        Return the maximum guaranteed correctable errors count floor((d - 1) / 2).
+        """
+        return self.mistakes_count
+
+    def find_degree_block_lens(self):
+        """
+        Return block lengths for degrees r..0: [C(m,r), C(m,r-1), ..., C(m,0)].
+        """
+        return [comb(self.m, i) for i in range(self.r, -1, -1)]
+
+    def get_matrix(self, m, r):
+        """
+        Get (or build and cache) the generator matrix for RM(m, r) within this instance.
+        """
+        if (m, r) not in self.matrix_cache:
+            self.matrix_cache[(m, r)] = matrix_generator(m, r)
+        return self.matrix_cache[(m, r)]
+
+    def get_gr(self, r):
+        """
+        Get (or build and cache) the generator block for degree r within this instance.
+        """
+        if r not in self.gr_cache:
+            self.gr_cache[r] = generation_gr(self.g1, r)
+        return self.gr_cache[r]
+
+    def encode(self, message):
+        """
+        Encode a message of length k into a codeword of length n.
+        """
+        if len(message) != self.k:
+            print("Wrong message length, the right variant is " + str(self.k))
+        else:
+            matrix = self.get_matrix(self.m, self.r)
+            result = np.dot(np.array(message), matrix)
+            return np.array(result % 2).flatten()
+
+    def decode_highest_degree_block(self, block_len, encoded_word, degree):
+        """
+        Decode coefficients for monomials of a given degree using parity over affine subcubes and majority vote.
+        Returns a bitstring representation of the decoded coefficients.
+        """
+        result1 = ""
+        for k in range(block_len):
+            coords_to_fill = get_multipliers(degree, self.m, k)
+            if len(coords_to_fill) == 0:
+                result1 += str(find_most_common_bit(encoded_word.tolist()))
+                continue
+
+            x_variants = []
+            for i in range(2 ** (self.m - degree)):
+                res_arr = []
+                binary_str = bin(i)[2:].zfill(self.m - len(coords_to_fill))
+                for j in range(2**degree):
+                    binary_str2 = bin(j)[2:].zfill(len(coords_to_fill))
+                    pos = int(create_string(binary_str2, binary_str, coords_to_fill), 2)
+                    res_arr.append(encoded_word[pos])
+                x_variants.append(xor_all_elements(res_arr))
+
+            result1 += str(find_most_common_bit(x_variants))
+
+        return result1
+
+    def decode_without_erasures(self, mess_and_mis):
+        """
+        Decode a word that contains only 0/1 values (no erasures).
+        """
+        z = mess_and_mis.copy()
+        res = []
+
+        for i in range(self.r, 0, -1):
+            mi_str = self.decode_highest_degree_block(comb(self.m, i), z, i)
+            mi = list(map(int, mi_str))
+            res = mi + res
+            z = (z - (np.array(mi) @ self.get_gr(i)) % 2) % 2
+            z = z.A1
+
+        total_sum = sum(z)
+        res = [1 if total_sum > 2 ** (self.m - 1) else 0] + res
+        return res
+
+    def decode(self, emess):
+        """
+        Decode a word that may contain erasures marked as 3.
+        If erasures exist, tries substituting them with 1 and 0, and picks the closer decoded codeword.
+        """
+        if np.count_nonzero(emess == 3) > 0:
+            diff_count = lambda a: sum(x != y for x, y in zip(emess, a))
+
+            ones = replace_elements(emess.copy(), 3, 1)
+            o = self.decode_without_erasures(ones)
+            o_var = self.encode(o)
+            diff_ones = diff_count(o_var)
+            if diff_ones == 0:
+                return o
+
+            zeros = replace_elements(emess.copy(), 3, 0)
+            z = self.decode_without_erasures(zeros)
+            z_var = self.encode(z)
+            diff_zeros = diff_count(z_var)
+
+            return o if diff_ones <= diff_zeros else z
+
+        return self.decode_without_erasures(emess)
