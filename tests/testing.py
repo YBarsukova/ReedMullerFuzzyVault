@@ -11,6 +11,67 @@ from fuzzy_vault import real_fuzzy_vault
 from rm_code.reedmuller import sum_binomial
 
 
+def _validate_positive_int(name, value):
+    """
+    Validate that value is a positive integer.
+    """
+    if not isinstance(value, int):
+        raise TypeError(f"{name} must be int, got {type(value).__name__}")
+    if value <= 0:
+        raise ValueError(f"{name} must be > 0, got {value}")
+
+
+def _validate_non_negative_int(name, value):
+    """
+    Validate that value is a non-negative integer.
+    """
+    if not isinstance(value, int):
+        raise TypeError(f"{name} must be int, got {type(value).__name__}")
+    if value < 0:
+        raise ValueError(f"{name} must be >= 0, got {value}")
+
+
+def _split_fail_limit(total_fail_limit, num_processes):
+    """
+    Split total_fail_limit equally across processes.
+
+    Raises ValueError if total_fail_limit is not divisible by num_processes
+    to avoid silent mismatch in the final success-rate denominator.
+    """
+    _validate_positive_int("total_fail_limit", total_fail_limit)
+    _validate_positive_int("num_processes", num_processes)
+
+    if total_fail_limit % num_processes != 0:
+        raise ValueError(
+            "total_fail_limit must be divisible by num_processes "
+            f"(got {total_fail_limit} and {num_processes})"
+        )
+
+    return total_fail_limit // num_processes
+
+
+def _random_binary_message(length):
+    """
+    Generate a random binary message (list of 0/1) of the given length.
+    """
+    _validate_non_negative_int("length", length)
+    return [random.choice([0, 1]) for _ in range(length)]
+
+
+def _aggregate_total_and_failed(results):
+    """
+    Aggregate a list of (total_count, fail_count) tuples.
+    """
+    total_count = 0
+    failed_count = 0
+
+    for total, failed in results:
+        total_count += total
+        failed_count += failed
+
+    return total_count, failed_count
+
+
 def generate_error_combinations(message_length, num_errors):
     """
     Generate all combinations of error positions of size num_errors for a given message_length.
@@ -97,16 +158,19 @@ def run_tests_for_error_counts(code, message):
     return results
 
 
-def tests_for_a_certain_number_of_errors(code, count):
+def tests_for_a_certain_number_of_errors(code, count, fail_limit=1000):
     """
-    Monte Carlo estimate: run random messages until 1000 failures and return success rate.
+    Monte Carlo estimate: run random messages until fail_limit failures and return success rate.
     """
+    _validate_positive_int("fail_limit", fail_limit)
+
     fail_count = 0
     total_count = 0
+    message_length = sum_binomial(code.m, code.r)
 
-    while fail_count < 1000:
+    while fail_count < fail_limit:
         total_count += 1
-        message = [random.choice([0, 1]) for _ in range(sum_binomial(code.m, code.r))]
+        message = _random_binary_message(message_length)
         encoded = code.encode(message)
         emessage = apply_errors(encoded, generate_one_random_combination(code.n, count))
         if code.decode(emessage) != message:
@@ -121,10 +185,11 @@ def worker(code, count, fail_limit):
     """
     fail_count = 0
     total_count = 0
+    message_length = sum_binomial(code.m, code.r)
 
     while fail_count < fail_limit:
         total_count += 1
-        message = [random.choice([0, 1]) for _ in range(sum_binomial(code.m, code.r))]
+        message = _random_binary_message(message_length)
         encoded = code.encode(message)
         emessage = apply_errors(encoded, generate_one_random_combination(code.n, count))
         if code.decode(emessage) != message:
@@ -140,10 +205,11 @@ def worker2(code, count, fail_limit, total_limit):
     """
     fail_count = 0
     total_count = 0
+    message_length = sum_binomial(code.m, code.r)
 
     for _ in range(total_limit):
         total_count += 1
-        message = [random.choice([0, 1]) for _ in range(sum_binomial(code.m, code.r))]
+        message = _random_binary_message(message_length)
         encoded = code.encode(message)
         emessage = apply_errors(encoded, generate_one_random_combination(code.n, count))
         if code.decode(emessage) != message:
@@ -154,25 +220,42 @@ def worker2(code, count, fail_limit, total_limit):
     return total_count, fail_count
 
 
-def tests_for_a_certain_number_of_errors_parallel(code, count, num_processes=4):
+def tests_for_a_certain_number_of_errors_parallel(
+    code,
+    count,
+    num_processes=4,
+    total_fail_limit=1000,
+):
     """
-    Parallel Monte Carlo using multiprocessing.Pool, stops after a total of 1000 failures.
+    Parallel Monte Carlo using multiprocessing.Pool.
+
+    Stops after total_fail_limit failures in total (split equally across processes).
     """
-    fail_limit_per_process = 1000 // num_processes
+    fail_limit_per_process = _split_fail_limit(total_fail_limit, num_processes)
+
     with multiprocessing.Pool(processes=num_processes) as pool:
         results = pool.starmap(
-            worker, [(code, count, fail_limit_per_process) for _ in range(num_processes)]
+            worker,
+            [(code, count, fail_limit_per_process) for _ in range(num_processes)],
         )
 
     total_count = sum(results)
-    return 1 - (1000 / total_count)
+    return 1 - (total_fail_limit / total_count)
 
 
-def tests_for_a_certain_number_of_errors_parallel2(code, count, num_processes=4):
+def tests_for_a_certain_number_of_errors_parallel2(
+    code,
+    count,
+    num_processes=4,
+    total_fail_limit=1024,
+):
     """
-    Parallel Monte Carlo using ProcessPoolExecutor, stops after a total of 1024 failures.
+    Parallel Monte Carlo using ProcessPoolExecutor.
+
+    Stops after total_fail_limit failures in total (split equally across processes).
     """
-    fail_limit_per_process = 1024 // num_processes
+    fail_limit_per_process = _split_fail_limit(total_fail_limit, num_processes)
+
     with ProcessPoolExecutor(max_workers=num_processes) as executor:
         futures = [
             executor.submit(worker, code, count, fail_limit_per_process)
@@ -181,31 +264,43 @@ def tests_for_a_certain_number_of_errors_parallel2(code, count, num_processes=4)
         results = [future.result() for future in futures]
 
     total_count = sum(results)
-    res = 1 - (1024 / total_count)
+    res = 1 - (total_fail_limit / total_count)
     if res < 0:
         print(total_count)
     return res
 
 
 def tests_for_a_certain_number_of_errors_parallel2_with_added_break(
-    code, count, num_processes=4
+    code,
+    count,
+    num_processes=4,
+    total_fail_limit=1024,
+    total_limit_per_process=10**5,
 ):
     """
     Parallel Monte Carlo with a per-process total limit and early break.
+
+    Each process stops when it reaches:
+    - fail_limit_per_process failures, or
+    - total_limit_per_process trials.
     """
-    fail_limit_per_process = 1024 // num_processes
+    _validate_positive_int("total_limit_per_process", total_limit_per_process)
+    fail_limit_per_process = _split_fail_limit(total_fail_limit, num_processes)
+
     with ProcessPoolExecutor(max_workers=num_processes) as executor:
         futures = [
-            executor.submit(worker2, code, count, fail_limit_per_process, 10**5)
+            executor.submit(
+                worker2,
+                code,
+                count,
+                fail_limit_per_process,
+                total_limit_per_process,
+            )
             for _ in range(num_processes)
         ]
         results = [future.result() for future in futures]
 
-    total_count = 0
-    failed_count = 0
-    for elem in results:
-        total_count += elem[0]
-        failed_count += elem[1]
+    total_count, failed_count = _aggregate_total_and_failed(results)
 
     res = 1 - (failed_count / total_count)
     if res < 0:
@@ -230,6 +325,8 @@ def test_splited_unlock_for_error_count(vault, num_errors, fail_limit=1000):
     Monte Carlo test for vault split-unlock:
     remove 2*num_errors coordinates from the key and estimate success rate.
     """
+    _validate_positive_int("fail_limit", fail_limit)
+
     fail_count = 0
     total_count = 0
 
@@ -262,14 +359,12 @@ def test_decode_recursed_splited(rm_core, num_tests):
     """
     Debug/test helper: encode and decode using decode_recursed_splited and print results.
     """
-    m = rm_core.code.m
-    n = 2**m
+    _validate_positive_int("num_tests", num_tests)
+
+    message_length = sum_binomial(rm_core.code.m, rm_core.code.r)
 
     for _ in range(num_tests):
-        message = [
-            random.choice([0, 1])
-            for _ in range(sum_binomial(rm_core.code.m, rm_core.code.r))
-        ]
+        message = _random_binary_message(message_length)
         encoded_message = rm_core.encode(message)
         decoded_message = rm_core.decode_recursed_splited(encoded_message)
         print(f"m: {message},\n \n {decoded_message}")
@@ -279,34 +374,33 @@ def test_decode_2(rm_core, num_tests):
     """
     Debug/test helper: encode and decode using final_version_decode and print results.
     """
+    _validate_positive_int("num_tests", num_tests)
+
     m = rm_core.code.m
-    n = 2**m
+    message_length = sum_binomial(rm_core.code.m, rm_core.code.r)
 
     for _ in range(num_tests):
-        message = [
-            random.choice([0, 1])
-            for _ in range(sum_binomial(rm_core.code.m, rm_core.code.r))
-        ]
+        message = _random_binary_message(message_length)
         encoded_message = rm_core.encode(message)
         decoded_message = rm_core.final_version_decode(encoded_message, m, rm_core.code.r)
         print(f"m: {message},\n, \n {decoded_message}")
 
 
-def worker3(core, count, fail_limit, total_limit):
+def worker3(core, count, fail_limit, total_limit, decode_depth=3):
     """
     Worker for RMCore parallel tests using real_final_version_decode.
     Returns (total_count, fail_count).
     """
     fail_count = 0
     total_count = 0
-    c = sum_binomial(core.code.m, core.code.r)
+    message_length = sum_binomial(core.code.m, core.code.r)
 
     for _ in range(total_limit):
         total_count += 1
-        message = [random.choice([0, 1]) for _ in range(c)]
+        message = _random_binary_message(message_length)
         encoded = core.encode(message)
         emessage = apply_errors(encoded, generate_one_random_combination(core.code.n, count))
-        if core.real_final_version_decode(emessage, 3) != message:
+        if core.real_final_version_decode(emessage, decode_depth) != message:
             fail_count += 1
         if fail_count >= fail_limit:
             break
@@ -314,23 +408,36 @@ def worker3(core, count, fail_limit, total_limit):
     return total_count, fail_count
 
 
-def tests_rm_core(core, count, num_processes=60):
+def tests_rm_core(
+    core,
+    count,
+    num_processes=60,
+    total_fail_limit=1020,
+    total_limit_per_process=10**5,
+    decode_depth=3,
+):
     """
     Parallel Monte Carlo test for RMCore decoder using ProcessPoolExecutor.
     """
-    fail_limit_per_process = 1020 // num_processes
+    _validate_positive_int("total_limit_per_process", total_limit_per_process)
+    _validate_positive_int("decode_depth", decode_depth)
+    fail_limit_per_process = _split_fail_limit(total_fail_limit, num_processes)
+
     with ProcessPoolExecutor(max_workers=num_processes) as executor:
         futures = [
-            executor.submit(worker3, core, count, fail_limit_per_process, 10**5)
+            executor.submit(
+                worker3,
+                core,
+                count,
+                fail_limit_per_process,
+                total_limit_per_process,
+                decode_depth,
+            )
             for _ in range(num_processes)
         ]
         results = [future.result() for future in futures]
 
-    total_count = 0
-    failed_count = 0
-    for elem in results:
-        total_count += elem[0]
-        failed_count += elem[1]
+    total_count, failed_count = _aggregate_total_and_failed(results)
 
     res = 1 - (failed_count / total_count)
     if res < 0:
@@ -338,11 +445,13 @@ def tests_rm_core(core, count, num_processes=60):
     return res
 
 
-def run_all_filters(r, m, max_prob):
+def run_all_filters(r, m, max_prob, max_workers=3):
     """
     Run first_filter/second_filter/third_filter concurrently and write results to a text file.
     """
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+    _validate_positive_int("max_workers", max_workers)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         future1 = executor.submit(real_fuzzy_vault.first_filter, r, m, max_prob)
         future2 = executor.submit(real_fuzzy_vault.second_filter, r, m, max_prob)
         future3 = executor.submit(real_fuzzy_vault.third_filter, r, m, max_prob)
@@ -368,11 +477,11 @@ def worker4(core, count, fail_limit, total_limit):
     """
     fail_count = 0
     total_count = 0
-    c = core.k
+    message_length = core.k
 
     for _ in range(total_limit):
         total_count += 1
-        message = [random.choice([0, 1]) for _ in range(c)]
+        message = _random_binary_message(message_length)
         encoded = core.encode(message)
         emessage = apply_errors(encoded, generate_one_random_combination(core.n, count))
         if core.decode_without_erasures(emessage) != message:
@@ -383,23 +492,33 @@ def worker4(core, count, fail_limit, total_limit):
     return total_count, fail_count
 
 
-def test_combined(core, count, num_processes=60):
+def test_combined(
+    core,
+    count,
+    num_processes=60,
+    total_fail_limit=1020,
+    total_limit_per_process=10**5,
+):
     """
     Parallel Monte Carlo test for CombinedRM-like decoder using ProcessPoolExecutor.
     """
-    fail_limit_per_process = 1020 // num_processes
+    _validate_positive_int("total_limit_per_process", total_limit_per_process)
+    fail_limit_per_process = _split_fail_limit(total_fail_limit, num_processes)
+
     with ProcessPoolExecutor(max_workers=num_processes) as executor:
         futures = [
-            executor.submit(worker4, core, count, fail_limit_per_process, 10**5)
+            executor.submit(
+                worker4,
+                core,
+                count,
+                fail_limit_per_process,
+                total_limit_per_process,
+            )
             for _ in range(num_processes)
         ]
         results = [future.result() for future in futures]
 
-    total_count = 0
-    failed_count = 0
-    for elem in results:
-        total_count += elem[0]
-        failed_count += elem[1]
+    total_count, failed_count = _aggregate_total_and_failed(results)
 
     res = 1 - (failed_count / total_count)
     if res < 0:
