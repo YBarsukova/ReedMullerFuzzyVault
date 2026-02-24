@@ -1,18 +1,28 @@
-import pandas as pd
 import os
+
+import pandas as pd
 from openpyxl import load_workbook
 
 
 def update_excel_with_data(filename, data_lines):
+    """
+    Update (or create) an Excel file with experiment results.
+
+    The first line of data_lines is expected to contain "(r m)".
+    All subsequent lines are expected to contain two tokens, where the second token is a probability value.
+
+    A new column is created per code: "Code (m,r)".
+    Rows are labeled as "max", "max+1", "max+2", ... and values are stored as percentages.
+    """
     config = data_lines[0].strip("()").split()
     r, m = int(config[0]), int(config[1])
-    column_header = f"Код ({m},{r})"
+    column_header = f"Code ({m},{r})"
 
     if os.path.exists(filename):
         workbook = load_workbook(filename)
         sheet = workbook.active
     else:
-        df_initial = pd.DataFrame(columns=["Ошибки\\Коды", column_header])
+        df_initial = pd.DataFrame(columns=["Errors\\Codes", column_header])
         df_initial.loc[0] = ["max", 100]
         df_initial.to_excel(filename, index=False)
         workbook = load_workbook(filename)
@@ -22,6 +32,7 @@ def update_excel_with_data(filename, data_lines):
     if column_header not in columns:
         sheet.cell(row=1, column=len(columns) + 1, value=column_header)
         columns.append(column_header)
+
     col_index = columns.index(column_header) + 1
 
     for i, line in enumerate(data_lines[1:], start=1):
